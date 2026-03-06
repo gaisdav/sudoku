@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'screens/game_screen.dart';
 
-void main() {
+import 'screens/home_screen.dart';
+import 'services/game_storage.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await GameStorage.init();
   runApp(const ProviderScope(child: SudokuApp()));
 }
 
@@ -14,10 +18,19 @@ class SudokuApp extends StatelessWidget {
     return MaterialApp(
       title: 'Sudoku',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF2196F3),
+          brightness: Brightness.light,
+          primary: const Color(0xFF2196F3),
+        ),
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          centerTitle: true,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
       ),
-      home: const GameScreen(),
+      home: const HomeScreen(),
     );
   }
 }

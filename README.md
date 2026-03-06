@@ -9,6 +9,21 @@ Mobile Sudoku app for Android and iOS. See [plan.md](plan.md) for the full roadm
 - **UI:** Game screen with 9×9 grid, number pad 1–9, cell selection, clear cell, new game
 - **Behaviour:** Wrong cells (duplicate in row/column/box) highlighted in red; win dialog on completion
 
+## Stage 2 (UI & animations) — Implemented
+
+- **AnimatedContainer** on cells for smooth selection/row/column highlight
+- **Scale animation** (elastic) when a digit appears in a cell
+- **CustomPainter** for bold 3×3 block borders
+- **Haptic feedback** on cell tap, number pad, and hint button
+- **Hint button** (lightbulb) in app bar — calls `applyHint()` (no ad yet)
+
+## Stage 4 (Progress, difficulty, statistics) — Implemented
+
+- **Difficulty:** Easy / Medium / Hard / Expert via `sudoku_dart` `Level`; choice when starting a new game (dialog).
+- **Persistence (Hive):** Current game is saved (board, solution, difficulty, elapsed time); on launch, saved game is restored automatically so the player can continue.
+- **Timer:** Elapsed time in seconds, shown in the app bar (mm:ss); stops when the game is won.
+- **Statistics:** Total wins and best time per difficulty, stored in Hive; “Statistics” button in the app bar opens a dialog with the data.
+
 ## Run
 
 From the project root (with Flutter installed):
