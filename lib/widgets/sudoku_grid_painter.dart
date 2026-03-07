@@ -1,4 +1,3 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 /// Draws bold lines separating the nine 3×3 blocks of the Sudoku grid.

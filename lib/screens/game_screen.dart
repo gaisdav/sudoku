@@ -130,7 +130,8 @@ class _GameScreenBody extends ConsumerWidget {
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
@@ -148,7 +149,8 @@ class _GameScreenBody extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Icon(Icons.access_time, size: 18, color: Colors.grey.shade600),
+                        Icon(Icons.access_time,
+                            size: 18, color: Colors.grey.shade600),
                       ],
                     ),
                   ),
@@ -166,19 +168,19 @@ class _GameScreenBody extends ConsumerWidget {
                 ],
               ),
             ),
-            Expanded(child: SudokuGrid()),
+            const Expanded(child: SudokuGrid()),
             // Undo, Notes, Hint
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _ActionButton(
+                  const _ActionButton(
                     icon: Icons.undo,
                     label: 'Undo',
                     onPressed: null,
                   ),
-                  _ActionButton(
+                  const _ActionButton(
                     icon: Icons.edit_note,
                     label: 'Notes',
                     onPressed: null,
@@ -186,7 +188,7 @@ class _GameScreenBody extends ConsumerWidget {
                   _ActionButton(
                     icon: Icons.lightbulb_outline,
                     label: 'Hint',
-                    badge: state.hasFreeHintLeft ? '1' : '0',
+                    badge: state.hasFreeHintLeft ? '1' : 'Ad',
                     onPressed: state.isWon
                         ? null
                         : () {
@@ -195,7 +197,8 @@ class _GameScreenBody extends ConsumerWidget {
                             if (!applied) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Watch an ad to get another hint (coming soon).'),
+                                  content: Text(
+                                      'Watch an ad to get another hint (coming soon).'),
                                   duration: Duration(seconds: 2),
                                 ),
                               );
@@ -324,5 +327,4 @@ class _ActionButton extends StatelessWidget {
       ),
     );
   }
-
 }

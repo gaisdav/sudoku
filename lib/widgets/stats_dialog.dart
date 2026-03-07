@@ -11,10 +11,8 @@ String formatDuration(int seconds) {
 void showStatsDialog(BuildContext context) {
   final totalWins = GameStorage.loadTotalWins();
   final bestByLevel = GameStorage.loadBestTimeByLevel();
-  final totalHintsUsed = GameStorage.loadTotalHintsUsed();
-  final winsWithZeroHints = GameStorage.loadWinsWithZeroHints();
+  final bestHintsByLevel = GameStorage.loadBestTimeHintsByLevel();
   const levelNames = ['Easy', 'Medium', 'Hard', 'Expert'];
-  final avgHints = totalWins > 0 ? (totalHintsUsed / totalWins).toStringAsFixed(1) : '—';
   showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
@@ -25,19 +23,20 @@ void showStatsDialog(BuildContext context) {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Total wins: $totalWins', style: Theme.of(ctx).textTheme.titleMedium),
-            Text('Wins with 0 hints: $winsWithZeroHints', style: Theme.of(ctx).textTheme.bodyMedium),
-            Text('Total hints used: $totalHintsUsed', style: Theme.of(ctx).textTheme.bodyMedium),
-            Text('Avg hints per win: $avgHints', style: Theme.of(ctx).textTheme.bodyMedium),
             const SizedBox(height: 16),
             Text('Best time by difficulty:', style: Theme.of(ctx).textTheme.titleSmall),
             const SizedBox(height: 8),
-            for (var i = 0; i < levelNames.length; i++)
+            for (var i = 0; i < levelNames.length; i++) ...[
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
-                  '${levelNames[i]}: ${bestByLevel[i] != null ? formatDuration(bestByLevel[i]!) : '—'}',
+                  bestByLevel[i] != null
+                      ? '${levelNames[i]}: ${formatDuration(bestByLevel[i]!)}'
+                          ' (${bestHintsByLevel[i] ?? 0} hints)'
+                      : '${levelNames[i]}: —',
                 ),
               ),
+            ],
           ],
         ),
       ),

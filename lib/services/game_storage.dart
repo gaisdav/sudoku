@@ -55,21 +55,19 @@ class GameStorage {
 
   static const String keyTotalWins = 'totalWins';
   static const String keyBestTimeByLevel = 'bestTimeByLevel';
-  static const String keyTotalHintsUsed = 'totalHintsUsed';
-  static const String keyWinsWithZeroHints = 'winsWithZeroHints';
+  static const String keyBestTimeHintsByLevel = 'bestTimeHintsByLevel';
 
-  /// Saves statistics.
+  /// Saves statistics. [bestTimeHintsByLevel] = hints used when that best time was set.
   static Future<void> saveStats({
     required int totalWins,
     required Map<int, int> bestTimeByLevel,
-    required int totalHintsUsed,
-    required int winsWithZeroHints,
+    required Map<int, int> bestTimeHintsByLevel,
   }) async {
     final data = {
       keyTotalWins: totalWins,
       keyBestTimeByLevel: bestTimeByLevel.map((k, v) => MapEntry(k.toString(), v)),
-      keyTotalHintsUsed: totalHintsUsed,
-      keyWinsWithZeroHints: winsWithZeroHints,
+      keyBestTimeHintsByLevel:
+          bestTimeHintsByLevel.map((k, v) => MapEntry(k.toString(), v)),
     };
     await box.put(_keyStats, jsonEncode(data));
   }
@@ -85,25 +83,17 @@ class GameStorage {
     }
   }
 
-  static int loadTotalHintsUsed() {
+  /// Level index -> hints used when best time was set (for display next to best time).
+  static Map<int, int> loadBestTimeHintsByLevel() {
     final raw = box.get(_keyStats);
-    if (raw == null) return 0;
+    if (raw == null) return {};
     try {
       final map = jsonDecode(raw.toString()) as Map;
-      return (map[keyTotalHintsUsed] as num?)?.toInt() ?? 0;
+      final byLevel = map[keyBestTimeHintsByLevel];
+      if (byLevel is! Map) return {};
+      return byLevel.map((k, v) => MapEntry(int.parse(k.toString()), (v as num).toInt()));
     } catch (_) {
-      return 0;
-    }
-  }
-
-  static int loadWinsWithZeroHints() {
-    final raw = box.get(_keyStats);
-    if (raw == null) return 0;
-    try {
-      final map = jsonDecode(raw.toString()) as Map;
-      return (map[keyWinsWithZeroHints] as num?)?.toInt() ?? 0;
-    } catch (_) {
-      return 0;
+      return {};
     }
   }
 

@@ -60,12 +60,14 @@ class NumberPad extends ConsumerWidget {
     GameNotifier notifier, [
     int? remaining,
   ]) {
+    // On Easy/Medium: block digit if all 9 are already placed (remaining == 0).
+    final digitEnabled = remaining == null || remaining > 0;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 5),
       child: _NumButton(
         label: '$n',
         remaining: remaining != null && remaining > 0 ? remaining : null,
-        onPressed: canEdit
+        onPressed: canEdit && digitEnabled
             ? () {
                 HapticFeedback.lightImpact();
                 notifier.setCellValue(n);

@@ -316,17 +316,18 @@ class GameNotifier extends StateNotifier<GameState> {
   Future<void> _persistStats() async {
     final totalWins = GameStorage.loadTotalWins() + 1;
     final bestByLevel = Map<int, int>.from(GameStorage.loadBestTimeByLevel());
+    final bestHintsByLevel = Map<int, int>.from(GameStorage.loadBestTimeHintsByLevel());
     final levelIndex = state.difficulty.index;
     final current = state.elapsedSeconds;
     final prev = bestByLevel[levelIndex];
-    if (prev == null || current < prev) bestByLevel[levelIndex] = current;
-    final totalHintsUsed = GameStorage.loadTotalHintsUsed() + state.hintsUsedThisGame;
-    final winsWithZeroHints = GameStorage.loadWinsWithZeroHints() + (state.hintsUsedThisGame == 0 ? 1 : 0);
+    if (prev == null || current < prev) {
+      bestByLevel[levelIndex] = current;
+      bestHintsByLevel[levelIndex] = state.hintsUsedThisGame;
+    }
     await GameStorage.saveStats(
       totalWins: totalWins,
       bestTimeByLevel: bestByLevel,
-      totalHintsUsed: totalHintsUsed,
-      winsWithZeroHints: winsWithZeroHints,
+      bestTimeHintsByLevel: bestHintsByLevel,
     );
   }
 
