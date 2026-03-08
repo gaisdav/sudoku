@@ -2,6 +2,8 @@ import 'dart:math' show min;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sudoku_dart/sudoku_dart.dart';
+
 import '../providers/game_provider.dart';
 import 'sudoku_cell_widget.dart';
 
@@ -118,13 +120,30 @@ class _BlockGrid extends StatelessWidget {
   }
 
   Widget _cell(int index, int row, int col) {
-    final isSameRowOrCol = (selectedRow != null && row == selectedRow) ||
-        (selectedCol != null && col == selectedCol);
+    final isSameBlock = selectedRow != null &&
+        selectedCol != null &&
+        blockRow == selectedRow! ~/ 3 &&
+        blockCol == selectedCol! ~/ 3;
+    final isSameRowOrCol = state.difficulty != Level.expert &&
+        ((selectedRow != null && row == selectedRow) ||
+            (selectedCol != null && col == selectedCol) ||
+            isSameBlock);
+    final isInCompleteRegion = (state.difficulty == Level.easy ||
+            state.difficulty == Level.medium) &&
+        (state.isRowComplete(row) ||
+            state.isColComplete(col) ||
+            state.isBlockComplete(blockRow, blockCol));
+    final justCompleted = state.justCompletedRegionIds;
+    final isJustCompleted = justCompleted.contains('r:$row') ||
+        justCompleted.contains('c:$col') ||
+        justCompleted.contains('b:$blockRow:$blockCol');
     return SudokuCellWidget(
       cellIndex: index,
       cell: state.cellAt(index),
       isSelected: state.selectedCellIndex == index,
       isSameRowOrColumn: isSameRowOrCol,
+      isInCompleteRegion: isInCompleteRegion,
+      isJustCompleted: isJustCompleted,
       onTap: () => onSelectCell(index),
     );
   }

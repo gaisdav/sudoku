@@ -72,6 +72,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               TextButton(
                 onPressed: () {
                   Navigator.of(ctx).pop();
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Back to menu'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
                   ref.read(gameProvider.notifier).newGame();
                 },
                 child: const Text('New game'),
@@ -80,6 +87,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           ),
         );
       }
+      if (next.errorsMade > next.maxErrors && !next.gameOverDialogShown) {
+        ref.read(gameProvider.notifier).markGameOverDialogShown();
+        showGameOverDialog(context, ref, next.difficulty);
+      }
     });
 
     return _GameScreenBody();
@@ -87,6 +98,46 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 }
 
 const _blue = Color(0xFF2196F3);
+
+void showGameOverDialog(
+    BuildContext context, WidgetRef ref, Level difficulty) {
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Game over'),
+      content: const Text(
+        'You have exceeded the allowed number of errors for this difficulty.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(ctx).pop();
+            ref.read(gameProvider.notifier).clearWrongCells();
+            ref.read(gameProvider.notifier).resetErrors();
+            ref.read(gameProvider.notifier).resetGameOverDialogShown();
+          },
+          child: const Text('Second chance (Ad)'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(ctx).pop();
+            ref.read(gameProvider.notifier).newGame(difficulty);
+          },
+          child: const Text('Restart'),
+        ),
+        TextButton(
+          onPressed: () async {
+            Navigator.of(ctx).pop();
+            await ref.read(gameProvider.notifier).endGameAndClearSave();
+            if (context.mounted) Navigator.of(context).pop();
+          },
+          child: const Text('Back to menu'),
+        ),
+      ],
+    ),
+  );
+}
 
 class _GameScreenBody extends ConsumerWidget {
   @override
@@ -165,30 +216,52 @@ class _GameScreenBody extends ConsumerWidget {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
+                  if (state.difficulty != Level.expert) ...[
+                    const Spacer(),
+                    Icon(Icons.warning_amber_rounded,
+                        size: 20, color: Colors.grey.shade700),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${state.errorsMade} / ${state.maxErrors}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: state.errorsMade >= state.maxErrors
+                            ? Colors.red.shade700
+                            : Colors.grey.shade800,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
             const Expanded(child: SudokuGrid()),
-            // Undo, Notes, Hint
+            // Undo, Notes, Hint (Undo и Notes скрыты)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const _ActionButton(
-                    icon: Icons.undo,
-                    label: 'Undo',
-                    onPressed: null,
+                  Visibility(
+                    visible: false,
+                    child: const _ActionButton(
+                      icon: Icons.undo,
+                      label: 'Undo',
+                      onPressed: null,
+                    ),
                   ),
-                  const _ActionButton(
-                    icon: Icons.edit_note,
-                    label: 'Notes',
-                    onPressed: null,
+                  Visibility(
+                    visible: false,
+                    child: const _ActionButton(
+                      icon: Icons.edit_note,
+                      label: 'Notes',
+                      onPressed: null,
+                    ),
                   ),
                   _ActionButton(
                     icon: Icons.lightbulb_outline,
                     label: 'Hint',
-                    badge: state.hasFreeHintLeft ? '1' : 'Ad',
+                    badge: state.freeHintsLeft > 0 ? '${state.freeHintsLeft}' : 'Ad',
                     onPressed: state.isWon
                         ? null
                         : () {

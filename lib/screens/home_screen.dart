@@ -6,11 +6,26 @@ import '../services/game_storage.dart';
 import '../widgets/stats_dialog.dart';
 import 'game_screen.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  void _openNewGameAndRefreshOnReturn(Level level) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GameScreen(newGameLevel: level),
+      ),
+    ).then((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final hasSavedGame = GameStorage.loadGame() != null;
 
     return Scaffold(
@@ -33,7 +48,9 @@ class HomeScreen extends ConsumerWidget {
                             MaterialPageRoute<void>(
                               builder: (_) => const GameScreen(continueLast: true),
                             ),
-                          );
+                          ).then((_) {
+                            if (mounted) setState(() {});
+                          });
                         }
                       : null,
                   icon: const Icon(Icons.play_arrow),
@@ -54,19 +71,19 @@ class HomeScreen extends ConsumerWidget {
                   children: [
                     _DifficultyChip(
                       label: 'Easy',
-                      onTap: () => _openGame(context, Level.easy),
+                      onTap: () => _openNewGameAndRefreshOnReturn(Level.easy),
                     ),
                     _DifficultyChip(
                       label: 'Medium',
-                      onTap: () => _openGame(context, Level.medium),
+                      onTap: () => _openNewGameAndRefreshOnReturn(Level.medium),
                     ),
                     _DifficultyChip(
                       label: 'Hard',
-                      onTap: () => _openGame(context, Level.hard),
+                      onTap: () => _openNewGameAndRefreshOnReturn(Level.hard),
                     ),
                     _DifficultyChip(
                       label: 'Expert',
-                      onTap: () => _openGame(context, Level.expert),
+                      onTap: () => _openNewGameAndRefreshOnReturn(Level.expert),
                     ),
                   ],
                 ),
@@ -92,13 +109,6 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  void _openGame(BuildContext context, Level level) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => GameScreen(newGameLevel: level),
-      ),
-    );
-  }
 }
 
 class _SectionCard extends StatelessWidget {

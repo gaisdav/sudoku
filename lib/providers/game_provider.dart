@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudoku_dart/sudoku_dart.dart';
 
@@ -19,6 +20,9 @@ class GameState {
     this.difficulty = Level.easy,
     this.elapsedSeconds = 0,
     this.hintsUsedThisGame = 0,
+    this.gameOverDialogShown = false,
+    this.errorsMade = 0,
+    this.justCompletedRegionIds = const {},
   });
 
   final List<SudokuCell> cells;
@@ -28,13 +32,61 @@ class GameState {
   final Level difficulty;
   final int elapsedSeconds;
   final int hintsUsedThisGame;
+  final bool gameOverDialogShown;
+  /// Cumulative count of wrong entries this game (incremented once per wrong digit entered, never decreased).
+  final int errorsMade;
+  /// Region ids ('r:0', 'c:1', 'b:0:1') that just became complete (for fill animation). Cleared after ~400ms.
+  final Set<String> justCompletedRegionIds;
 
   SudokuCell cellAt(int index) => cells[index];
 
   bool get isInitial => solution.every((v) => v == 0);
 
-  /// One free hint per game; after that, hint requires ad (see applyHintFromAd).
-  bool get hasFreeHintLeft => hintsUsedThisGame < 1;
+  /// Max free hints per difficulty (Easy 3, Medium 2, Hard 1, Expert 0). Rest require ad.
+  int get maxFreeHints => switch (difficulty) {
+        Level.easy => 3,
+        Level.medium => 2,
+        Level.hard => 1,
+        Level.expert => 0,
+      };
+
+  /// How many free hints are left this game.
+  int get freeHintsLeft => (maxFreeHints - hintsUsedThisGame).clamp(0, maxFreeHints);
+
+  /// Max allowed errors before game over (Easy 3, Medium 2, Hard 1, Expert 0).
+  int get maxErrors => switch (difficulty) {
+        Level.easy => 3,
+        Level.medium => 2,
+        Level.hard => 1,
+        Level.expert => 0,
+      };
+
+  /// True if all 9 cells in this row have a value (filled).
+  bool isRowComplete(int row) {
+    for (int c = 0; c < 9; c++) {
+      if (cells[row * 9 + c].value == 0) return false;
+    }
+    return true;
+  }
+
+  /// True if all 9 cells in this column have a value (filled).
+  bool isColComplete(int col) {
+    for (int r = 0; r < 9; r++) {
+      if (cells[r * 9 + col].value == 0) return false;
+    }
+    return true;
+  }
+
+  /// True if all 9 cells in this 3×3 block have a value (filled). [blockRow], [blockCol] in 0..2.
+  bool isBlockComplete(int blockRow, int blockCol) {
+    for (int r = 0; r < 3; r++) {
+      for (int c = 0; c < 3; c++) {
+        final i = (blockRow * 3 + r) * 9 + (blockCol * 3 + c);
+        if (cells[i].value == 0) return false;
+      }
+    }
+    return true;
+  }
 
   GameState copyWith({
     List<SudokuCell>? cells,
@@ -44,6 +96,9 @@ class GameState {
     Level? difficulty,
     int? elapsedSeconds,
     int? hintsUsedThisGame,
+    bool? gameOverDialogShown,
+    int? errorsMade,
+    Set<String>? justCompletedRegionIds,
   }) {
     return GameState(
       cells: cells ?? this.cells,
@@ -53,6 +108,9 @@ class GameState {
       difficulty: difficulty ?? this.difficulty,
       elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
       hintsUsedThisGame: hintsUsedThisGame ?? this.hintsUsedThisGame,
+      gameOverDialogShown: gameOverDialogShown ?? this.gameOverDialogShown,
+      errorsMade: errorsMade ?? this.errorsMade,
+      justCompletedRegionIds: justCompletedRegionIds ?? this.justCompletedRegionIds,
     );
   }
 }
@@ -74,6 +132,39 @@ class GameNotifier extends StateNotifier<GameState> {
   GameNotifier() : super(_initialState());
 
   Timer? _timer;
+  Timer? _justCompletedTimer;
+
+  static Set<String> _completeRegionIds(GameState s) {
+    final set = <String>{};
+    for (int r = 0; r < 9; r++) {
+      if (s.isRowComplete(r)) set.add('r:$r');
+    }
+    for (int c = 0; c < 9; c++) {
+      if (s.isColComplete(c)) set.add('c:$c');
+    }
+    for (int br = 0; br < 3; br++) {
+      for (int bc = 0; bc < 3; bc++) {
+        if (s.isBlockComplete(br, bc)) set.add('b:$br:$bc');
+      }
+    }
+    return set;
+  }
+
+  void _scheduleClearJustCompleted() {
+    _justCompletedTimer?.cancel();
+    _justCompletedTimer = Timer(const Duration(milliseconds: 500), () {
+      state = state.copyWith(justCompletedRegionIds: {});
+      _justCompletedTimer = null;
+    });
+  }
+
+  /// Двойной лёгкий отклик при заполнении строки/столбца/блока — ощущается чуть длиннее.
+  void _triggerRegionCompleteHaptic() {
+    HapticFeedback.lightImpact();
+    Timer(const Duration(milliseconds: 60), () {
+      HapticFeedback.lightImpact();
+    });
+  }
 
   static GameState _initialState() {
     final empty = List.generate(81, (_) => SudokuCell(value: 0));
@@ -81,8 +172,12 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 
   /// Call once after storage is ready. Loads saved game or starts new with [level].
+  /// When returning to an already loaded game (Continue), restarts the timer if game not won.
   void ensureGameStarted([Level level = Level.easy]) {
-    if (!state.isInitial) return;
+    if (!state.isInitial) {
+      if (!state.isWon) _startTimer();
+      return;
+    }
     final saved = GameStorage.loadGame();
     if (saved != null) {
       _restoreGame(saved);
@@ -109,6 +204,7 @@ class GameNotifier extends StateNotifier<GameState> {
       }
       final solution = solList.map((e) => (e as num).toInt()).toList();
       final hintsUsed = (data[GameStorage.keyHintsUsedThisGame] as num?)?.toInt() ?? 0;
+      final errorsMade = (data[GameStorage.keyErrorsMade] as num?)?.toInt() ?? 0;
       state = GameState(
         cells: cells,
         solution: solution,
@@ -117,6 +213,7 @@ class GameNotifier extends StateNotifier<GameState> {
         difficulty: level,
         elapsedSeconds: elapsed,
         hintsUsedThisGame: hintsUsed,
+        errorsMade: errorsMade,
       );
       _revalidateWrong();
     } catch (_) {
@@ -147,6 +244,12 @@ class GameNotifier extends StateNotifier<GameState> {
     _stopTimer();
   }
 
+  /// Ends the game and clears saved data (e.g. after Game Over → Back to menu). Continue will no longer restore this game.
+  Future<void> endGameAndClearSave() async {
+    _stopTimer();
+    await GameStorage.saveGame(null);
+  }
+
   Future<void> _persistGame() async {
     if (state.isWon || state.isInitial) return;
     final data = {
@@ -156,6 +259,7 @@ class GameNotifier extends StateNotifier<GameState> {
       GameStorage.keySolution: state.solution,
       GameStorage.keyElapsedSeconds: state.elapsedSeconds,
       GameStorage.keyHintsUsedThisGame: state.hintsUsedThisGame,
+      GameStorage.keyErrorsMade: state.errorsMade,
     };
     await GameStorage.saveGame(data);
   }
@@ -181,6 +285,7 @@ class GameNotifier extends StateNotifier<GameState> {
       difficulty: level,
       elapsedSeconds: 0,
       hintsUsedThisGame: 0,
+      errorsMade: 0,
     );
     _revalidateWrong();
     _startTimer();
@@ -200,10 +305,21 @@ class GameNotifier extends StateNotifier<GameState> {
     final cell = state.cells[idx];
     if (cell.isOriginal) return;
 
+    final previousComplete = _completeRegionIds(state);
     final newCells = List<SudokuCell>.from(state.cells);
     newCells[idx] = cell.copyWith(value: digit, isHint: false);
     state = state.copyWith(cells: newCells);
     _revalidateWrong();
+    if (state.cells[idx].isWrong) {
+      state = state.copyWith(errorsMade: state.errorsMade + 1);
+    }
+    final newComplete = _completeRegionIds(state);
+    final justCompleted = newComplete.difference(previousComplete);
+    if (justCompleted.isNotEmpty) {
+      state = state.copyWith(justCompletedRegionIds: justCompleted);
+      _scheduleClearJustCompleted();
+      _triggerRegionCompleteHaptic();
+    }
     _persistGame();
     _checkWin();
   }
@@ -219,6 +335,46 @@ class GameNotifier extends StateNotifier<GameState> {
     newCells[idx] = cell.copyWith(value: 0, isHint: false);
     state = state.copyWith(cells: newCells);
     _revalidateWrong();
+    _persistGame();
+  }
+
+  /// Clears all wrong cells (non-original) to give a "second chance" after watching ad.
+  void clearWrongCells() {
+    if (state.isWon) return;
+    final newCells = <SudokuCell>[];
+    for (final c in state.cells) {
+      if (c.isWrong && !c.isOriginal) {
+        newCells.add(c.copyWith(value: 0, isHint: false, isWrong: false));
+      } else {
+        newCells.add(c);
+      }
+    }
+    state = state.copyWith(cells: newCells);
+    _revalidateWrong();
+    _persistGame();
+  }
+
+  void markGameOverDialogShown() {
+    state = state.copyWith(gameOverDialogShown: true);
+    _persistGame();
+  }
+
+  void resetGameOverDialogShown() {
+    state = state.copyWith(gameOverDialogShown: false);
+    _persistGame();
+  }
+
+  /// For "second chance (Ad)": forgive one error so the counter goes down by 1.
+  void forgiveLastError() {
+    if (state.errorsMade <= 0) return;
+    state = state.copyWith(errorsMade: state.errorsMade - 1);
+    _persistGame();
+  }
+
+  /// Resets error counter to 0 (used when giving second chance after ad).
+  void resetErrors() {
+    if (state.errorsMade == 0) return;
+    state = state.copyWith(errorsMade: 0);
     _persistGame();
   }
 
@@ -258,14 +414,14 @@ class GameNotifier extends StateNotifier<GameState> {
     return false;
   }
 
-  /// Hint: uses the one free hint per game. Returns false if no free hint left (UI may show "watch ad").
+  /// Hint: uses one free hint if any left, else returns false (UI shows "watch ad", then call applyHintFromAd).
   bool applyHint() {
     if (state.isWon) return false;
-    if (!state.hasFreeHintLeft) return false;
+    if (state.freeHintsLeft <= 0) return false;
     return applyHintFromAd();
   }
 
-  /// Hint after watching ad (or for free when hasFreeHintLeft). Always applies if game not won.
+  /// Hint after watching ad (or for free when freeHintsLeft > 0). Always applies if game not won.
   bool applyHintFromAd() {
     if (state.isWon) return false;
     int? target = state.selectedCellIndex;
@@ -287,6 +443,7 @@ class GameNotifier extends StateNotifier<GameState> {
     final solutionValue = state.solution[target];
     if (solutionValue < 1 || solutionValue > 9) return false;
 
+    final previousComplete = _completeRegionIds(state);
     final newCells = List<SudokuCell>.from(state.cells);
     newCells[target] = state.cells[target].copyWith(
       value: solutionValue,
@@ -297,6 +454,13 @@ class GameNotifier extends StateNotifier<GameState> {
       hintsUsedThisGame: state.hintsUsedThisGame + 1,
     );
     _revalidateWrong();
+    final newComplete = _completeRegionIds(state);
+    final justCompleted = newComplete.difference(previousComplete);
+    if (justCompleted.isNotEmpty) {
+      state = state.copyWith(justCompletedRegionIds: justCompleted);
+      _scheduleClearJustCompleted();
+      _triggerRegionCompleteHaptic();
+    }
     _persistGame();
     _checkWin();
     return true;

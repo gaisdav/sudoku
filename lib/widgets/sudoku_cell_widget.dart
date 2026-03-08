@@ -9,6 +9,8 @@ class SudokuCellWidget extends StatelessWidget {
     required this.cell,
     required this.isSelected,
     required this.isSameRowOrColumn,
+    this.isInCompleteRegion = false,
+    this.isJustCompleted = false,
     required this.onTap,
   });
 
@@ -16,6 +18,10 @@ class SudokuCellWidget extends StatelessWidget {
   final SudokuCell cell;
   final bool isSelected;
   final bool isSameRowOrColumn;
+  /// True if this cell's row, column, or 3×3 block is fully filled (for subtle highlight).
+  final bool isInCompleteRegion;
+  /// True if this cell's region just became complete (soft flash animation).
+  final bool isJustCompleted;
   final VoidCallback onTap;
 
   void _onTap() {
@@ -33,10 +39,15 @@ class SudokuCellWidget extends StatelessWidget {
     Color bg = Colors.white;
     if (cell.isWrong) {
       bg = errorRed.withValues(alpha: 0.35);
+    } else if (isJustCompleted) {
+      // Приоритет: вспышка «область заполнена» поверх выбора и строки/столбца/блока
+      bg = Colors.green.shade50;
     } else if (isSelected) {
       bg = lightBlue;
     } else if (isSameRowOrColumn) {
       bg = lightBlue.withValues(alpha: 0.5);
+    } else if (isInCompleteRegion) {
+      bg = Colors.grey.shade100;
     }
 
     // Given numbers: black. User/hint: blue. Wrong: red.
@@ -52,7 +63,8 @@ class SudokuCellWidget extends StatelessWidget {
     return GestureDetector(
       onTap: _onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: Duration(
+            milliseconds: isInCompleteRegion ? 400 : 150),
         curve: Curves.easeOut,
         margin: const EdgeInsets.all(1),
         decoration: BoxDecoration(

@@ -30,6 +30,7 @@ class GameStorage {
   static const String keySolution = 'solution';
   static const String keyElapsedSeconds = 'elapsedSeconds';
   static const String keyHintsUsedThisGame = 'hintsUsedThisGame';
+  static const String keyErrorsMade = 'errorsMade';
 
   /// Saves current game. Pass null to clear.
   static Future<void> saveGame(Map<String, dynamic>? data) async {
