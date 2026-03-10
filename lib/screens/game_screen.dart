@@ -5,6 +5,7 @@ import 'package:sudoku_dart/sudoku_dart.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../providers/game_provider.dart';
+import '../widgets/banner_ad_widget.dart';
 import '../widgets/number_pad.dart';
 import '../widgets/stats_dialog.dart';
 import '../widgets/sudoku_grid.dart';
@@ -326,6 +327,7 @@ class _GameScreenBody extends ConsumerWidget {
               },
             ),
             const NumberPad(),
+            const BannerAdWidget(),
           ],
         ),
       ),

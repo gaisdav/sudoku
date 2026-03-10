@@ -1,13 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'screens/home_screen.dart';
 import 'services/game_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Загрузка .env (если добавлен в assets) или .env.example с тестовыми значениями
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {
+    await dotenv.load(fileName: '.env.example');
+  }
   await GameStorage.init();
+  // Инициализация AdMob только на Android/iOS (на Web и macOS плагин не реализован)
+  try {
+    await MobileAds.instance.initialize();
+  } catch (_) {}
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,

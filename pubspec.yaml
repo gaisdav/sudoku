@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_dotenv: ^5.2.0
+  google_mobile_ads: ^5.1.0
   flutter_riverpod: ^2.4.9
   sudoku_dart: ^1.2.0
   hive_flutter: ^1.1.0
@@ -21,3 +23,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - .env.example
+    - .env

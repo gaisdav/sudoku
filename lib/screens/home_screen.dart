@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudoku_dart/sudoku_dart.dart';
 
 import '../services/game_storage.dart';
-import '../widgets/stats_dialog.dart';
+import '../widgets/banner_ad_widget.dart';
+import '../widgets/stats_dialog.dart' show formatDuration, showStatsDialog;
 import 'game_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -33,28 +34,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         title: const Text('Sudoku'),
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Column(
           children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                children: [
             // Continue last game
             _SectionCard(
               title: 'Continue last game',
               child: Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: FilledButton.icon(
-                  onPressed: hasSavedGame
-                      ? () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => const GameScreen(continueLast: true),
-                            ),
-                          ).then((_) {
-                            if (mounted) setState(() {});
-                          });
-                        }
-                      : null,
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Continue'),
+                child: _ContinueRow(
+                  hasSavedGame: hasSavedGame,
+                  onContinue: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const GameScreen(continueLast: true),
+                      ),
+                    ).then((_) {
+                      if (mounted) setState(() {});
+                    });
+                  },
                 ),
               ),
             ),
@@ -103,12 +104,70 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
             ),
+                ],
+              ),
+            ),
+            const BannerAdWidget(),
           ],
         ),
       ),
     );
   }
 
+}
+
+const List<String> _levelLabels = ['Easy', 'Medium', 'Hard', 'Expert'];
+
+class _ContinueRow extends StatelessWidget {
+  const _ContinueRow({
+    required this.hasSavedGame,
+    required this.onContinue,
+  });
+
+  final bool hasSavedGame;
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    final saved = hasSavedGame ? GameStorage.loadGame() : null;
+    final difficultyIndex = (saved?[GameStorage.keyDifficulty] as num?)?.toInt() ?? 0;
+    final levelLabel = _levelLabels[difficultyIndex.clamp(0, _levelLabels.length - 1)];
+    final elapsedSeconds = (saved?[GameStorage.keyElapsedSeconds] as num?)?.toInt() ?? 0;
+
+    return Row(
+      children: [
+        FilledButton.icon(
+          onPressed: hasSavedGame ? onContinue : null,
+          icon: const Icon(Icons.play_arrow),
+          label: const Text('Continue'),
+        ),
+        if (hasSavedGame) ...[
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  levelLabel,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  formatDuration(elapsedSeconds),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }
 
 class _SectionCard extends StatelessWidget {
