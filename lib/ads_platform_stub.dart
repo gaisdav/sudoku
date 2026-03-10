@@ -2,3 +2,5 @@
 String get bannerAdUnitId => '';
 
 String get rewardedAdUnitId => '';
+
+String get interstitialAdUnitId => '';

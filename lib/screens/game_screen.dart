@@ -5,6 +5,7 @@ import 'package:sudoku_dart/sudoku_dart.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../providers/game_provider.dart';
+import '../services/interstitial_ad_service.dart';
 import '../services/rewarded_ad_service.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/number_pad.dart';
@@ -76,6 +77,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
   Widget build(BuildContext context) {
     ref.listen<GameState>(gameProvider, (prev, next) {
       if (next.isWon && prev?.isWon != true) {
+        ref.read(gameProvider.notifier).pauseTimer();
         showDialog<void>(
           context: context,
           barrierDismissible: false,
@@ -101,15 +103,27 @@ class _GameScreenState extends ConsumerState<GameScreen>
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).pop();
+                  InterstitialAdService.tryShowInterstitial(
+                    context,
+                    InterstitialTrigger.backToMenu,
+                    onDone: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.of(context).pop();
+                    },
+                  );
                 },
                 child: const Text('Back to menu'),
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.of(ctx).pop();
-                  ref.read(gameProvider.notifier).newGame();
+                  InterstitialAdService.tryShowInterstitial(
+                    context,
+                    InterstitialTrigger.restartYouWon,
+                    onDone: () {
+                      Navigator.of(ctx).pop();
+                      ref.read(gameProvider.notifier).newGame();
+                    },
+                  );
                 },
                 child: const Text('New game'),
               ),
@@ -189,9 +203,14 @@ void showGameOverDialog(
               onNotAvailable: () {
                 if (context.mounted) {
                   Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                  ref.read(gameProvider.notifier).clearWrongCells();
+                  ref.read(gameProvider.notifier).resetErrors();
+                  ref.read(gameProvider.notifier).resetGameOverDialogShown();
+                  ref.read(gameProvider.notifier).onAppResumed();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Ad not available. Try again later.'),
+                      content: Text('Ad not available. Second chance applied.'),
                       duration: Duration(seconds: 2),
                     ),
                   );
@@ -203,16 +222,29 @@ void showGameOverDialog(
         ),
         TextButton(
           onPressed: () {
-            Navigator.of(ctx).pop();
-            ref.read(gameProvider.notifier).newGame(difficulty);
+            InterstitialAdService.tryShowInterstitial(
+              context,
+              InterstitialTrigger.restartGameOver,
+              onDone: () {
+                Navigator.of(ctx).pop();
+                ref.read(gameProvider.notifier).newGame(difficulty);
+              },
+            );
           },
           child: const Text('Restart'),
         ),
         TextButton(
-          onPressed: () async {
-            Navigator.of(ctx).pop();
-            await ref.read(gameProvider.notifier).endGameAndClearSave();
-            if (context.mounted) Navigator.of(context).pop();
+          onPressed: () {
+            InterstitialAdService.tryShowInterstitial(
+              context,
+              InterstitialTrigger.backToMenu,
+              onDone: () {
+                Navigator.of(ctx).pop();
+                ref.read(gameProvider.notifier).endGameAndClearSave().then((_) {
+                  if (context.mounted) Navigator.of(context).pop();
+                });
+              },
+            );
           },
           child: const Text('Back to menu'),
         ),
@@ -233,8 +265,15 @@ class _GameScreenBody extends ConsumerWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            notifier.pauseTimer();
-            Navigator.of(context).pop();
+            notifier.onAppPaused();
+            InterstitialAdService.tryShowInterstitial(
+              context,
+              InterstitialTrigger.backToMenu,
+              onDone: () {
+                notifier.pauseTimer();
+                if (context.mounted) Navigator.of(context).pop();
+              },
+            );
           },
           tooltip: 'Back to menu',
         ),
@@ -244,8 +283,23 @@ class _GameScreenBody extends ConsumerWidget {
             icon: const Icon(Icons.more_vert),
             tooltip: 'Menu',
             onSelected: (value) {
-              if (value == 'new') _showNewGameDialog(context, ref);
-              if (value == 'stats') showStatsDialog(context);
+              if (value == 'new') {
+                notifier.onAppPaused();
+                InterstitialAdService.tryShowInterstitial(
+                  context,
+                  InterstitialTrigger.newGameInHeader,
+                  onDone: () {
+                    notifier.onAppResumed();
+                    _showNewGameDialog(context, ref);
+                  },
+                );
+              }
+              if (value == 'stats') {
+                notifier.onAppPaused();
+                showStatsDialog(context).then((_) {
+                  if (context.mounted) notifier.onAppResumed();
+                });
+              }
             },
             itemBuilder: (context) => [
               const PopupMenuItem(value: 'new', child: Text('New game')),
@@ -350,7 +404,15 @@ class _GameScreenBody extends ConsumerWidget {
                             ? null
                             : () {
                                 HapticFeedback.selectionClick();
-                                notifier.toggleNotesMode();
+                                notifier.onAppPaused();
+                                InterstitialAdService.tryShowInterstitial(
+                                  context,
+                                  InterstitialTrigger.notes,
+                                  onDone: () {
+                                    notifier.onAppResumed();
+                                    notifier.toggleNotesMode();
+                                  },
+                                );
                               },
                       ),
                       _ActionButton(
@@ -365,6 +427,7 @@ class _GameScreenBody extends ConsumerWidget {
                                 final applied = notifier.applyHint();
                                 if (!applied) {
                                   if (!context.mounted) return;
+                                  notifier.onAppPaused();
                                   showDialog<void>(
                                     context: context,
                                     barrierDismissible: false,
@@ -376,12 +439,15 @@ class _GameScreenBody extends ConsumerWidget {
                                       if (context.mounted) Navigator.of(context).pop();
                                     },
                                     onRewarded: () => notifier.applyHintFromAd(),
+                                    onDismissed: () => notifier.onAppResumed(),
                                     onNotAvailable: () {
                                       if (context.mounted) {
                                         Navigator.of(context).pop();
+                                        notifier.applyHintFromAd();
+                                        notifier.onAppResumed();
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           const SnackBar(
-                                            content: Text('Ad not available. Try again later.'),
+                                            content: Text('Ad not available. Hint applied.'),
                                             duration: Duration(seconds: 2),
                                           ),
                                         );
@@ -452,10 +518,15 @@ class _GameScreenBody extends ConsumerWidget {
       onNotAvailable: () {
         if (context.mounted) {
           Navigator.of(context).pop();
+          if (state.difficulty == Level.expert) {
+            notifier.performUndoAfterAd();
+          } else {
+            notifier.refillUndoAfterAd();
+          }
           notifier.onAppResumed();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Ad not available. Try again later.'),
+              content: Text('Ad not available. Undo applied.'),
               duration: Duration(seconds: 2),
             ),
           );

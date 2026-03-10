@@ -13,3 +13,9 @@ String get rewardedAdUnitId {
   if (Platform.isIOS) return Env.admobRewardedIdIos;
   return Env.admobRewardedIdAndroid;
 }
+
+/// ID межстраничной рекламы для текущей платформы.
+String get interstitialAdUnitId {
+  if (Platform.isIOS) return Env.admobInterstitialIdIos;
+  return Env.admobInterstitialIdAndroid;
+}

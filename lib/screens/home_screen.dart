@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudoku_dart/sudoku_dart.dart';
 
 import '../services/game_storage.dart';
+import '../services/interstitial_ad_service.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/stats_dialog.dart' show formatDuration, showStatsDialog;
 import 'game_screen.dart';
@@ -16,13 +17,20 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _openNewGameAndRefreshOnReturn(Level level) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => GameScreen(newGameLevel: level),
-      ),
-    ).then((_) {
-      if (mounted) setState(() {});
-    });
+    InterstitialAdService.tryShowInterstitial(
+      context,
+      InterstitialTrigger.startNewGame,
+      onDone: () {
+        if (!context.mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => GameScreen(newGameLevel: level),
+          ),
+        ).then((_) {
+          if (mounted) setState(() {});
+        });
+      },
+    );
   }
 
   @override
@@ -48,13 +56,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: _ContinueRow(
                   hasSavedGame: hasSavedGame,
                   onContinue: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const GameScreen(continueLast: true),
-                      ),
-                    ).then((_) {
-                      if (mounted) setState(() {});
-                    });
+                    InterstitialAdService.tryShowInterstitial(
+                      context,
+                      InterstitialTrigger.continueGame,
+                      onDone: () {
+                        if (!context.mounted) return;
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const GameScreen(continueLast: true),
+                          ),
+                        ).then((_) {
+                          if (mounted) setState(() {});
+                        });
+                      },
+                    );
                   },
                 ),
               ),
@@ -98,7 +113,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: FilledButton.tonalIcon(
-                  onPressed: () => showStatsDialog(context),
+                  onPressed: () {
+                    InterstitialAdService.tryShowInterstitial(
+                      context,
+                      InterstitialTrigger.viewStatistics,
+                      onDone: () => showStatsDialog(context),
+                    );
+                  },
                   icon: const Icon(Icons.bar_chart),
                   label: const Text('View statistics'),
                 ),

@@ -8,12 +8,13 @@ String formatDuration(int seconds) {
   return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
 }
 
-void showStatsDialog(BuildContext context) {
+/// Показывает диалог статистики. Возвращает Future, который завершается при закрытии диалога.
+Future<void> showStatsDialog(BuildContext context) {
   final totalWins = GameStorage.loadTotalWins();
   final bestByLevel = GameStorage.loadBestTimeByLevel();
   final bestHintsByLevel = GameStorage.loadBestTimeHintsByLevel();
   const levelNames = ['Easy', 'Medium', 'Hard', 'Expert'];
-  showDialog<void>(
+  return showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: const Text('Statistics'),
