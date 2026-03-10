@@ -28,7 +28,8 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     if (adUnitId.isEmpty) return;
     try {
       final width = MediaQuery.sizeOf(context).width.truncate();
-      final size = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
+      final size =
+          await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
       if (size == null || !mounted) return;
 
       final ad = BannerAd(
@@ -37,10 +38,12 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
         request: const AdRequest(),
         listener: BannerAdListener(
           onAdLoaded: (Ad loadedAd) {
-            if (mounted) setState(() {
-              _bannerAd = loadedAd as BannerAd;
-              _isLoaded = true;
-            });
+            if (mounted) {
+              setState(() {
+                _bannerAd = loadedAd as BannerAd;
+                _isLoaded = true;
+              });
+            }
           },
           onAdFailedToLoad: (Ad ad, LoadAdError error) {
             debugPrint('BannerAd failed to load: $error');

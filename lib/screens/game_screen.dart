@@ -5,6 +5,7 @@ import 'package:sudoku_dart/sudoku_dart.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../providers/game_provider.dart';
+import '../services/rewarded_ad_service.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/number_pad.dart';
 import '../widgets/stats_dialog.dart';
@@ -118,6 +119,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
       }
       if (next.errorsMade > next.maxErrors && !next.gameOverDialogShown) {
         ref.read(gameProvider.notifier).markGameOverDialogShown();
+        ref.read(gameProvider.notifier).pauseTimer();
         showGameOverDialog(context, ref, next.difficulty);
       }
     });
@@ -127,6 +129,29 @@ class _GameScreenState extends ConsumerState<GameScreen>
 }
 
 const _blue = Color(0xFF2196F3);
+
+/// Диалог «загрузка рекламы» со спиннером (Hint, Undo, Second chance).
+class _LoadingAdDialog extends StatelessWidget {
+  const _LoadingAdDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      content: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 24),
+          Expanded(child: Text('Loading ad…')),
+        ],
+      ),
+    );
+  }
+}
 
 void showGameOverDialog(
     BuildContext context, WidgetRef ref, Level difficulty) {
@@ -141,10 +166,38 @@ void showGameOverDialog(
       actions: [
         TextButton(
           onPressed: () {
-            Navigator.of(ctx).pop();
-            ref.read(gameProvider.notifier).clearWrongCells();
-            ref.read(gameProvider.notifier).resetErrors();
-            ref.read(gameProvider.notifier).resetGameOverDialogShown();
+            showDialog<void>(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => const _LoadingAdDialog(),
+            );
+            showRewardedAd(
+              context,
+              onAdReadyToShow: () {
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                }
+              },
+              onRewarded: () {
+                final notifier = ref.read(gameProvider.notifier);
+                notifier.clearWrongCells();
+                notifier.resetErrors();
+                notifier.resetGameOverDialogShown();
+                notifier.onAppResumed();
+              },
+              onNotAvailable: () {
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Ad not available. Try again later.'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+            );
           },
           child: const Text('Second chance (Ad)'),
         ),
@@ -307,16 +360,33 @@ class _GameScreenBody extends ConsumerWidget {
                         compact: compact,
                         onPressed: state.isWon
                             ? null
-                            : () {
+                            : () async {
                                 HapticFeedback.lightImpact();
                                 final applied = notifier.applyHint();
                                 if (!applied) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          'Watch an ad to get another hint (coming soon).'),
-                                      duration: Duration(seconds: 2),
-                                    ),
+                                  if (!context.mounted) return;
+                                  showDialog<void>(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (_) => const _LoadingAdDialog(),
+                                  );
+                                  showRewardedAd(
+                                    context,
+                                    onAdReadyToShow: () {
+                                      if (context.mounted) Navigator.of(context).pop();
+                                    },
+                                    onRewarded: () => notifier.applyHintFromAd(),
+                                    onNotAvailable: () {
+                                      if (context.mounted) {
+                                        Navigator.of(context).pop();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Ad not available. Try again later.'),
+                                            duration: Duration(seconds: 2),
+                                          ),
+                                        );
+                                      }
+                                    },
                                   );
                                 }
                               },
@@ -359,33 +429,38 @@ class _GameScreenBody extends ConsumerWidget {
       notifier.undo();
       return;
     }
-    // Undo only via ad (limit exhausted or Expert): pause timer, show ad, on close resume and refill or perform undo
     notifier.onAppPaused();
+    if (!context.mounted) return;
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Undo'),
-        content: Text(
-          state.difficulty == Level.expert
-              ? 'Watch an ad to undo the last move.'
-              : 'Watch an ad to get ${state.difficulty == Level.easy ? 12 : state.difficulty == Level.medium ? 6 : 3} more undos.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              notifier.onAppResumed();
-              if (state.difficulty == Level.expert) {
-                notifier.performUndoAfterAd();
-              } else {
-                notifier.refillUndoAfterAd();
-              }
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+      builder: (_) => const _LoadingAdDialog(),
+    );
+    showRewardedAd(
+      context,
+      onAdReadyToShow: () {
+        if (context.mounted) Navigator.of(context).pop();
+      },
+      onRewarded: () {
+        if (state.difficulty == Level.expert) {
+          notifier.performUndoAfterAd();
+        } else {
+          notifier.refillUndoAfterAd();
+        }
+      },
+      onDismissed: () => notifier.onAppResumed(),
+      onNotAvailable: () {
+        if (context.mounted) {
+          Navigator.of(context).pop();
+          notifier.onAppResumed();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Ad not available. Try again later.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      },
     );
   }
 

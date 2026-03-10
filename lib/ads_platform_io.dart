@@ -7,3 +7,9 @@ String get bannerAdUnitId {
   if (Platform.isIOS) return Env.admobBannerIdIos;
   return Env.admobBannerIdAndroid;
 }
+
+/// ID вознаграждаемой рекламы для текущей платформы.
+String get rewardedAdUnitId {
+  if (Platform.isIOS) return Env.admobRewardedIdIos;
+  return Env.admobRewardedIdAndroid;
+}

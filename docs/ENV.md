@@ -36,4 +36,12 @@
 
 ## Ключи в .env.example
 
-Список ключей и описание — в файле `.env.example` в корне проекта.
+- **ID рекламы AdMob** (баннер, interstitial, rewarded, app open) — список и описание в `.env.example`.
+- **Параметры управления рекламой** (интервалы, «каждое N-е» для Interstitial и App Open) — тоже в `.env.example` (блок с комментариями). В коде они читаются через класс **`AdConfig`** (`lib/config/ad_config.dart`), например:
+  ```dart
+  import 'package:sudoku/config/ad_config.dart';
+
+  final intervalMin = AdConfig.interstitialMinIntervalMinutes;
+  final everyNth = AdConfig.interstitialEveryNthContinue;
+  ```
+  При реализации Interstitial и App Open используйте `AdConfig`, чтобы лимиты брались из .env (для отладки можно задать 0 и 1).
