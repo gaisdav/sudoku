@@ -7,13 +7,21 @@ plugins {
 
 // Подпись релиза для Google Play (создайте android/key.properties и keystore)
 val keystorePropertiesFile = rootProject.file("key.properties")
-val keystoreProperties = java.util.Properties()
+val keystoreProperties = mutableMapOf<String, String>()
 if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+    keystorePropertiesFile.reader().useLines { lines ->
+        lines.forEach { line ->
+            val trimmed = line.trim()
+            if (trimmed.contains("=")) {
+                val parts = trimmed.split("=", limit = 2).map { it.trim() }
+                if (parts.size == 2) keystoreProperties[parts[0]] = parts[1]
+            }
+        }
+    }
 }
 
 android {
-    namespace = "com.gaisdev-sudoku.sudoku"
+    namespace = "com.gaisdev.sudoku"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -23,31 +31,34 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     signingConfigs {
         create("release") {
             if (keystorePropertiesFile.exists()) {
-                keyAlias = keystoreProperties["keyAlias"] as String?
-                keyPassword = keystoreProperties["keyPassword"] as String?
-                storeFile = (keystoreProperties["storeFile"] as String?)?.let { path ->
-                    rootProject.file(path)
+                keyAlias = keystoreProperties["keyAlias"]
+                keyPassword = keystoreProperties["keyPassword"]
+                storeFile = keystoreProperties["storeFile"]?.let { path ->
+                    val fromRoot = rootProject.file(path)
+                    if (fromRoot.exists()) fromRoot else rootProject.rootDir.parentFile?.resolve(path)
                 }
-                storePassword = keystoreProperties["storePassword"] as String?
+                storePassword = keystoreProperties["storePassword"]
             }
         }
     }
 
     defaultConfig {
-        // Замените на свой уникальный ID перед публикацией в Play (например com.вашеимя.sudoku)
-        applicationId = "com.gaisdev-sudoku.sudoku"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId = "com.gaisdev.sudoku"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Только ARM — меньше размер AAB (x86/x86_64 только для эмулятора)
+        ndk {
+            abiFilters.clear()
+            abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
+        }
     }
 
     buildTypes {

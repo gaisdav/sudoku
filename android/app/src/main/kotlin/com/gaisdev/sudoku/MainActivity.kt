@@ -1,4 +1,4 @@
-package com.gaisdev-sudoku.sudoku
+package com.gaisdev.sudoku
 
 import io.flutter.embedding.android.FlutterActivity
 

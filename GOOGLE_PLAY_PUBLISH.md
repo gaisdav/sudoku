@@ -35,7 +35,7 @@ keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -vali
 
 Указать пароли и данные (имя, организация и т.д.). Файл `upload-keystore.jks` и пароли нельзя терять — без них нельзя обновлять приложение в Play.
 
-2. **Файл `android/key.properties`** (не коммитить в git, добавить в `.gitignore`):
+2. **Создать вручную файл `android/key.properties`** (его нет в репозитории; в `android/.gitignore` он уже указан, в git не попадёт):
 
 ```properties
 storePassword=ваш_пароль_хранилища
@@ -44,7 +44,9 @@ keyAlias=upload
 storeFile=../upload-keystore.jks
 ```
 
-Путь `storeFile` — относительно `android/app/` или абсолютный путь к `.jks`.
+**Откуда пароли:** вы сами их задали при создании keystore командой `keytool`. `storePassword` — тот пароль, что вводили на вопрос «Enter keystore password». `keyPassword` — пароль для ключа (на вопрос «Enter key password for <upload>»; если нажали Enter и оставили тот же — совпадает с `storePassword`). Подставьте в файл эти свои пароли.
+
+Путь `storeFile` — относительно папки `android/` или абсолютный путь к `.jks`.
 
 3. **Подключить подпись в `android/app/build.gradle.kts`** — см. раздел 3 ниже.
 
@@ -105,13 +107,22 @@ Google Play принимает **Android App Bundle (.aab)**, не APK.
 flutter build appbundle
 ```
 
+Чтобы уменьшить размер (обфускация Dart + отключение лишних символов, обычно −15–25%):
+
+```bash
+flutter build appbundle --obfuscate --split-debug-info=build/app/outputs/symbols
+```
+
+Папку `build/app/outputs/symbols` сохраните: она нужна для расшифровки стектрейсов при крашах. В репозиторий не коммитить.
+
 Готовый файл: `build/app/outputs/bundle/release/app-release.aab`.
+
+**Уже настроено в проекте:** в `android/app/build.gradle.kts` для релиза включены только ARM-архитектуры (`arm64-v8a`, `armeabi-v7a`), без x86/x86_64 — так AAB меньше, а на реальных устройствах всё работает (эмулятор для такого билда не подойдёт).
 
 Проверка на устройстве (APK из AAB для теста):
 
 ```bash
 flutter build apk --release
-# или установка через bundletool
 ```
 
 ---

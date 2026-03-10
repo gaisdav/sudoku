@@ -25,10 +25,12 @@ class GameScreen extends ConsumerStatefulWidget {
   ConsumerState<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends ConsumerState<GameScreen> {
+class _GameScreenState extends ConsumerState<GameScreen>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Start/restore game after first frame — must not modify provider during build/initState.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final notifier = ref.read(gameProvider.notifier);
@@ -40,6 +42,29 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         notifier.ensureGameStarted(Level.easy);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final notifier = ref.read(gameProvider.notifier);
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.inactive:
+        notifier.onAppPaused();
+        break;
+      case AppLifecycleState.resumed:
+        notifier.onAppResumed();
+        break;
+      case AppLifecycleState.detached:
+        break;
+    }
   }
 
   @override
@@ -242,17 +267,17 @@ class _GameScreenBody extends ConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Visibility(
+                  const Visibility(
                     visible: false,
-                    child: const _ActionButton(
+                    child: _ActionButton(
                       icon: Icons.undo,
                       label: 'Undo',
                       onPressed: null,
                     ),
                   ),
-                  Visibility(
+                  const Visibility(
                     visible: false,
-                    child: const _ActionButton(
+                    child: _ActionButton(
                       icon: Icons.edit_note,
                       label: 'Notes',
                       onPressed: null,

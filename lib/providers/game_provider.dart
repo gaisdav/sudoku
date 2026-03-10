@@ -244,6 +244,17 @@ class GameNotifier extends StateNotifier<GameState> {
     _stopTimer();
   }
 
+  /// Pause timer when app is backgrounded (e.g. home button, switch app). Saves current state.
+  void onAppPaused() {
+    _stopTimer();
+    _persistGame();
+  }
+
+  /// Resume timer when app is foregrounded, if game is in progress and not won.
+  void onAppResumed() {
+    if (!state.isWon && !state.isInitial) _startTimer();
+  }
+
   /// Ends the game and clears saved data (e.g. after Game Over → Back to menu). Continue will no longer restore this game.
   Future<void> endGameAndClearSave() async {
     _stopTimer();
