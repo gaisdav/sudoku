@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudoku_dart/sudoku_dart.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../providers/game_provider.dart';
 import '../widgets/number_pad.dart';
@@ -30,6 +31,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
   @override
   void initState() {
     super.initState();
+    WakelockPlus.enable();
     WidgetsBinding.instance.addObserver(this);
     // Start/restore game after first frame — must not modify provider during build/initState.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -46,6 +48,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
   @override
   void dispose() {
+    WakelockPlus.disable();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
