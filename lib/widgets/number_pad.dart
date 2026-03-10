@@ -37,7 +37,7 @@ class NumberPad extends ConsumerWidget {
         final buttonSize = ((availableWidth - (countPerRow - 1) * gap) / countPerRow)
             .clamp(40.0, 52.0)
             .floorToDouble();
-        final padding = gap / 2;
+        const padding = gap / 2;
 
         return Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -51,7 +51,7 @@ class NumberPad extends ConsumerWidget {
                     .map((n) => _padCell(context, n, canEdit, notifier, remaining?[n], buttonSize, padding))
                     .toList(),
               ),
-              SizedBox(height: gap),
+              const SizedBox(height: gap),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
