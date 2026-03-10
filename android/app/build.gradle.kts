@@ -1,3 +1,5 @@
+import java.io.File
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -6,12 +8,11 @@ plugins {
 }
 
 // AdMob App ID из .env в корне проекта (или .env.example)
-val projectRoot = rootProject.projectDir.parentFile!!
-val envFile = java.io.File(projectRoot, ".env").takeIf { it.exists() }
-    ?: java.io.File(projectRoot, ".env.example")
+val projectRoot: File = rootProject.projectDir.parentFile!!
+val envFile: File = if (File(projectRoot, ".env").exists()) File(projectRoot, ".env") else File(projectRoot, ".env.example")
 val admobAppIdAndroid = if (envFile.exists()) {
     envFile.readLines()
-        .firstOrNull { it.trimStart().startsWith("ADMOB_APP_ID_ANDROID=") }
+        .firstOrNull { line -> line.trimStart().startsWith("ADMOB_APP_ID_ANDROID=") }
         ?.substringAfter("=", "")
         ?.trim()
         ?.trim('"')

@@ -7,8 +7,7 @@ import '../ads_platform.dart';
 /// Баннерная реклама (anchored adaptive) для размещения внизу экрана.
 /// На Android/iOS использует ADMOB_BANNER_ID_* из .env; на Web и десктопе не показывается.
 ///
-/// Если [collapsible] true, показывается тонкая полоска «▲ Ad» в свёрнутом виде;
-/// по нажатию баннер разворачивается, сверху появляется «▼ Hide» для сворачивания.
+/// Если [collapsible] true, в правом верхнем углу баннера — небольшая плашка со стрелкой (▼ свернуть, ▲ развернуть).
 class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget({super.key, this.collapsible = false});
 
@@ -71,7 +70,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     super.dispose();
   }
 
-  static const _collapsedBarHeight = 36.0;
+  static const _collapseChipPadding = 6.0;
 
   @override
   Widget build(BuildContext context) {
@@ -92,70 +91,60 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       return banner;
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (_expanded) ...[
-          _CollapseBar(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              setState(() => _expanded = false);
-            },
-            showCollapse: true,
-          ),
+    if (_expanded) {
+      return Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.topRight,
+        children: [
           banner,
-        ] else ...[
-          _CollapseBar(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              setState(() => _expanded = true);
-            },
-            showCollapse: false,
+          Positioned(
+            top: _collapseChipPadding,
+            right: _collapseChipPadding,
+            child: _CollapseChip(
+              arrowDown: true,
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _expanded = false);
+              },
+            ),
           ),
         ],
-      ],
+      );
+    }
+
+    return _CollapseChip(
+      arrowDown: false,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _expanded = true);
+      },
     );
   }
 }
 
-class _CollapseBar extends StatelessWidget {
-  const _CollapseBar({
+class _CollapseChip extends StatelessWidget {
+  const _CollapseChip({
+    required this.arrowDown,
     required this.onTap,
-    required this.showCollapse,
   });
 
+  final bool arrowDown;
   final VoidCallback onTap;
-  /// true = "Hide" (collapse), false = "Ad" (expand)
-  final bool showCollapse;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.grey.shade200,
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
-        child: SizedBox(
-          height: _BannerAdWidgetState._collapsedBarHeight,
-          width: double.infinity,
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  showCollapse ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
-                  size: 20,
-                  color: Colors.grey.shade700,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  showCollapse ? 'Hide' : 'Ad',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Colors.grey.shade700,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Icon(
+            arrowDown ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
+            size: 22,
+            color: Colors.grey.shade700,
           ),
         ),
       ),
