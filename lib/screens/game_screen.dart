@@ -144,6 +144,11 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
 const _blue = Color(0xFF2196F3);
 
+/// Ширина экрана, при которой кнопки Undo/Notes/Hint в «компактном» размере.
+const _kActionCompactWidth = 360.0;
+/// Ширина экрана, при которой кнопки достигают максимального размера (планшеты).
+const _kActionLargeWidth = 640.0;
+
 /// Диалог «загрузка рекламы» со спиннером (Hint, Undo, Second chance).
 class _LoadingAdDialog extends StatelessWidget {
   const _LoadingAdDialog();
@@ -380,13 +385,14 @@ class _GameScreenBody extends ConsumerWidget {
               ),
             ),
             const Expanded(child: SudokuGrid()),
-            // Undo, Notes, Hint — на узких экранах компактные отступы и кнопки
+            // Undo, Notes, Hint — размер зависит от ширины экрана (компактно на телефонах, крупнее на планшетах)
             LayoutBuilder(
               builder: (context, constraints) {
-                const breakpoint = 360.0;
-                final compact = constraints.maxWidth < breakpoint;
-                final outerH = compact ? 8.0 : 16.0;
-                final gap = compact ? 8.0 : 16.0;
+                final w = constraints.maxWidth;
+                final scale = ((w - _kActionCompactWidth) / (_kActionLargeWidth - _kActionCompactWidth))
+                    .clamp(0.0, 1.0);
+                final outerH = 8.0 + scale * 8.0; // 8 .. 16
+                final gap = 8.0 + scale * 8.0;    // 8 .. 16
                 return Padding(
                   padding: EdgeInsets.symmetric(horizontal: outerH, vertical: 8),
                   child: Wrap(
@@ -398,7 +404,7 @@ class _GameScreenBody extends ConsumerWidget {
                         icon: Icons.undo,
                         label: 'Undo',
                         badge: _undoBadge(state),
-                        compact: compact,
+                        actionScale: scale,
                         onPressed: _undoEnabled(state)
                             ? () => _onUndoTap(context, ref, state)
                             : null,
@@ -407,7 +413,7 @@ class _GameScreenBody extends ConsumerWidget {
                         icon: Icons.edit_note,
                         label: 'Notes',
                         isActive: state.isNotesMode,
-                        compact: compact,
+                        actionScale: scale,
                         onPressed: state.isWon
                             ? null
                             : () {
@@ -427,7 +433,7 @@ class _GameScreenBody extends ConsumerWidget {
                         icon: Icons.lightbulb_outline,
                         label: 'Hint',
                         badge: state.freeHintsLeft > 0 ? '${state.freeHintsLeft}' : 'Ad',
-                        compact: compact,
+                        actionScale: scale,
                         onPressed: state.isWon
                             ? null
                             : () async {
@@ -590,7 +596,7 @@ class _ActionButton extends StatelessWidget {
     required this.label,
     this.badge,
     this.isActive = false,
-    this.compact = false,
+    this.actionScale = 0.0,
     this.onPressed,
   });
 
@@ -598,21 +604,23 @@ class _ActionButton extends StatelessWidget {
   final String label;
   final String? badge;
   final bool isActive;
-  /// На узких экранах: меньше отступы и размер иконки/шрифта.
-  final bool compact;
+  /// 0 = компактный размер (узкий экран), 1 = крупный (планшет). Масштабирование отступов и шрифтов.
+  final double actionScale;
+
   final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
     final active = isActive && enabled;
-    final hPad = compact ? 12.0 : 20.0;
-    final vPad = compact ? 8.0 : 12.0;
-    final radius = compact ? 8.0 : 12.0;
-    final iconSize = compact ? 18.0 : 22.0;
-    final fontSize = compact ? 12.0 : 14.0;
-    final gap = compact ? 4.0 : 6.0;
-    final labelGap = compact ? 6.0 : 8.0;
+    final t = actionScale.clamp(0.0, 1.0);
+    final hPad = 12.0 + t * 12.0;   // 12 .. 24
+    final vPad = 8.0 + t * 6.0;    // 8 .. 14
+    final radius = 8.0 + t * 8.0;  // 8 .. 16
+    final iconSize = 18.0 + t * 12.0;  // 18 .. 30
+    final fontSize = 12.0 + t * 6.0;  // 12 .. 18
+    final gap = 4.0 + t * 4.0;     // 4 .. 8
+    final labelGap = 6.0 + t * 6.0; // 6 .. 12
     return Material(
       color: active ? _blue.withValues(alpha: 0.15) : Colors.white,
       borderRadius: BorderRadius.circular(radius),

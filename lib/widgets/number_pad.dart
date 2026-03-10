@@ -7,6 +7,10 @@ import '../providers/game_provider.dart';
 
 const _blue = Color(0xFF2196F3);
 
+/// Min/max side of each number-pad button so it scales on small and large screens (like the grid).
+const _kMinButtonSize = 40.0;
+const _kMaxButtonSize = 76.0;
+
 class NumberPad extends ConsumerWidget {
   const NumberPad({super.key});
 
@@ -37,7 +41,7 @@ class NumberPad extends ConsumerWidget {
         const countPerRow = 5;
         final availableWidth = (constraints.maxWidth - horizontalPadding * 2).clamp(0.0, double.infinity);
         final buttonSize = ((availableWidth - (countPerRow - 1) * gap) / countPerRow)
-            .clamp(40.0, 52.0)
+            .clamp(_kMinButtonSize, _kMaxButtonSize)
             .floorToDouble();
         const padding = gap / 2;
 
@@ -146,8 +150,8 @@ class _NumButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
-    final fontSize = (size * 0.42).clamp(16.0, 22.0);
-    final iconSize = (size * 0.5).clamp(20.0, 26.0);
+    final fontSize = (size * 0.42).clamp(16.0, 28.0);
+    final iconSize = (size * 0.5).clamp(20.0, 34.0);
     final mainChild = label != null
         ? Text(
             label!,
@@ -163,7 +167,7 @@ class _NumButton extends StatelessWidget {
             color: enabled ? _blue : Colors.grey.shade400,
           );
 
-    final borderRadius = (size * 0.23).clamp(8.0, 12.0);
+    final borderRadius = (size * 0.23).clamp(8.0, 16.0);
     final borderColor = isConflictFlash ? Colors.red : Colors.grey.shade300;
     final bgColor = isConflictFlash ? Colors.red.shade50 : Colors.white;
 
@@ -192,7 +196,7 @@ class _NumButton extends StatelessWidget {
                       child: Text(
                         '$remaining',
                         style: TextStyle(
-                          fontSize: (size * 0.21).clamp(9.0, 11.0),
+                          fontSize: (size * 0.21).clamp(9.0, 14.0),
                           fontWeight: FontWeight.w600,
                           color: Colors.grey.shade600,
                         ),
