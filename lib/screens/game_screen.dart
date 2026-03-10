@@ -150,16 +150,16 @@ class _LoadingAdDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return const AlertDialog(
       content: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(
+          SizedBox(
             width: 24,
             height: 24,
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
-          const SizedBox(width: 24),
+          SizedBox(width: 24),
           Expanded(child: Text('Loading ad…')),
         ],
       ),

@@ -686,6 +686,7 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 
   /// Hint after watching ad (or for free when freeHintsLeft > 0). Always applies if game not won.
+  /// When called after ad (freeHintsLeft was 0): restores full hint limit and counts this hint as one used — e.g. Easy ends up with 2 left.
   bool applyHintFromAd() {
     if (state.isWon) return false;
     int? target = state.selectedCellIndex;
@@ -718,10 +719,12 @@ class GameNotifier extends StateNotifier<GameState> {
       newNotes = List<Set<int>>.from(state.cellNotes);
       newNotes[target] = <int>{};
     }
+    // After ad: restore full limit and count this hint as one used (e.g. Easy → 2 left). Otherwise just increment.
+    final newHintsUsed = state.freeHintsLeft <= 0 ? 1 : state.hintsUsedThisGame + 1;
     state = state.copyWith(
       cells: newCells,
       cellNotes: newNotes,
-      hintsUsedThisGame: state.hintsUsedThisGame + 1,
+      hintsUsedThisGame: newHintsUsed,
     );
     _revalidateWrong();
     final newComplete = _completeRegionIds(state);

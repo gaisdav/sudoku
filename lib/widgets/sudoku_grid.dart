@@ -7,8 +7,12 @@ import 'package:sudoku_dart/sudoku_dart.dart';
 import '../providers/game_provider.dart';
 import 'sudoku_cell_widget.dart';
 
-/// Max side length of the grid in logical pixels (avoids huge grid on tablets).
-const _kMaxGridSide = 420.0;
+/// Min/max grid side so the board scales with screen but stays usable on very small or very large devices.
+const _kMinGridSide = 280.0;
+const _kMaxGridSide = 720.0;
+
+/// Fraction of available space the grid can use (so it scales on tablets).
+const _kGridSpaceFraction = 0.88;
 
 /// Gap between 3×3 blocks (replaces drawn lines). Smaller = larger cells.
 const _blockGap = 4.0;
@@ -29,7 +33,8 @@ class SudokuGrid extends ConsumerWidget {
         const padding = 12.0;
         final availableWidth = (constraints.maxWidth - padding).clamp(0.0, double.infinity);
         final availableHeight = constraints.maxHeight.clamp(0.0, double.infinity);
-        final gridSide = min(min(availableWidth, availableHeight), _kMaxGridSide);
+        final available = min(availableWidth, availableHeight);
+        final gridSide = (available * _kGridSpaceFraction).clamp(_kMinGridSide, _kMaxGridSide);
         // 9 cells, 6 inner spacings (2 per block row), 2 block gaps: 9*cell + 6*_cellSpacing + 2*_blockGap = gridSide
         final cellSize = (gridSide - 6 * _cellSpacing - 2 * _blockGap) / 9;
 
