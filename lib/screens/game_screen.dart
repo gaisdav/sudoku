@@ -264,54 +264,66 @@ class _GameScreenBody extends ConsumerWidget {
               ),
             ),
             const Expanded(child: SudokuGrid()),
-            // Undo, Notes, Hint (Undo и Notes скрыты)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Visibility(
-                    visible: false,
-                    child: _ActionButton(
-                      icon: Icons.undo,
-                      label: 'Undo',
-                      onPressed: null,
-                    ),
+            // Undo, Notes, Hint — на узких экранах компактные отступы и кнопки
+            LayoutBuilder(
+              builder: (context, constraints) {
+                const breakpoint = 360.0;
+                final compact = constraints.maxWidth < breakpoint;
+                final outerH = compact ? 8.0 : 16.0;
+                final gap = compact ? 8.0 : 16.0;
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: outerH, vertical: 8),
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: gap,
+                    runSpacing: gap,
+                    children: [
+                      _ActionButton(
+                        icon: Icons.undo,
+                        label: 'Undo',
+                        badge: _undoBadge(state),
+                        compact: compact,
+                        onPressed: _undoEnabled(state)
+                            ? () => _onUndoTap(context, ref, state)
+                            : null,
+                      ),
+                      _ActionButton(
+                        icon: Icons.edit_note,
+                        label: 'Notes',
+                        isActive: state.isNotesMode,
+                        compact: compact,
+                        onPressed: state.isWon
+                            ? null
+                            : () {
+                                HapticFeedback.selectionClick();
+                                notifier.toggleNotesMode();
+                              },
+                      ),
+                      _ActionButton(
+                        icon: Icons.lightbulb_outline,
+                        label: 'Hint',
+                        badge: state.freeHintsLeft > 0 ? '${state.freeHintsLeft}' : 'Ad',
+                        compact: compact,
+                        onPressed: state.isWon
+                            ? null
+                            : () {
+                                HapticFeedback.lightImpact();
+                                final applied = notifier.applyHint();
+                                if (!applied) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Watch an ad to get another hint (coming soon).'),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              },
+                      ),
+                    ],
                   ),
-                  _ActionButton(
-                    icon: Icons.edit_note,
-                    label: 'Notes',
-                    isActive: state.isNotesMode,
-                    onPressed: state.isWon
-                        ? null
-                        : () {
-                            HapticFeedback.selectionClick();
-                            notifier.toggleNotesMode();
-                          },
-                  ),
-                  const SizedBox(width: 16),
-                  _ActionButton(
-                    icon: Icons.lightbulb_outline,
-                    label: 'Hint',
-                    badge: state.freeHintsLeft > 0 ? '${state.freeHintsLeft}' : 'Ad',
-                    onPressed: state.isWon
-                        ? null
-                        : () {
-                            HapticFeedback.lightImpact();
-                            final applied = notifier.applyHint();
-                            if (!applied) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                      'Watch an ad to get another hint (coming soon).'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            }
-                          },
-                  ),
-                ],
-              ),
+                );
+              },
             ),
             const NumberPad(),
           ],
@@ -327,6 +339,52 @@ class _GameScreenBody extends ConsumerWidget {
       Level.hard => 'Hard',
       Level.expert => 'Expert',
     };
+  }
+
+  static String _undoBadge(GameState state) {
+    if (state.undoRemaining > 0) return '${state.undoRemaining}';
+    return 'Ad';
+  }
+
+  static bool _undoEnabled(GameState state) {
+    return !state.isWon && state.undoStack.isNotEmpty;
+  }
+
+  static void _onUndoTap(BuildContext context, WidgetRef ref, GameState state) {
+    final notifier = ref.read(gameProvider.notifier);
+    if (state.undoRemaining > 0) {
+      HapticFeedback.selectionClick();
+      notifier.undo();
+      return;
+    }
+    // Undo only via ad (limit exhausted or Expert): pause timer, show ad, on close resume and refill or perform undo
+    notifier.onAppPaused();
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Undo'),
+        content: Text(
+          state.difficulty == Level.expert
+              ? 'Watch an ad to undo the last move.'
+              : 'Watch an ad to get ${state.difficulty == Level.easy ? 12 : state.difficulty == Level.medium ? 6 : 3} more undos.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              notifier.onAppResumed();
+              if (state.difficulty == Level.expert) {
+                notifier.performUndoAfterAd();
+              } else {
+                notifier.refillUndoAfterAd();
+              }
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   static void _showNewGameDialog(BuildContext context, WidgetRef ref) {
@@ -376,6 +434,7 @@ class _ActionButton extends StatelessWidget {
     required this.label,
     this.badge,
     this.isActive = false,
+    this.compact = false,
     this.onPressed,
   });
 
@@ -383,22 +442,31 @@ class _ActionButton extends StatelessWidget {
   final String label;
   final String? badge;
   final bool isActive;
+  /// На узких экранах: меньше отступы и размер иконки/шрифта.
+  final bool compact;
   final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
     final active = isActive && enabled;
+    final hPad = compact ? 12.0 : 20.0;
+    final vPad = compact ? 8.0 : 12.0;
+    final radius = compact ? 8.0 : 12.0;
+    final iconSize = compact ? 18.0 : 22.0;
+    final fontSize = compact ? 12.0 : 14.0;
+    final gap = compact ? 4.0 : 6.0;
+    final labelGap = compact ? 6.0 : 8.0;
     return Material(
       color: active ? _blue.withValues(alpha: 0.15) : Colors.white,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(radius),
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(radius),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(radius),
             border: Border.all(
               color: active ? _blue : Colors.grey.shade300,
               width: 1,
@@ -409,25 +477,25 @@ class _ActionButton extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                size: 22,
+                size: iconSize,
                 color: active ? _blue : (enabled ? _blue : Colors.grey.shade400),
               ),
               if (badge != null) ...[
-                const SizedBox(width: 6),
+                SizedBox(width: gap),
                 Text(
                   badge!,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: active ? _blue : (enabled ? _blue : Colors.grey.shade400),
-                    fontSize: 14,
+                    fontSize: fontSize,
                   ),
                 ),
               ],
-              const SizedBox(width: 8),
+              SizedBox(width: labelGap),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: fontSize,
                   fontWeight: active ? FontWeight.w600 : FontWeight.w500,
                   color: active ? _blue : (enabled ? Colors.grey.shade800 : Colors.grey.shade400),
                 ),

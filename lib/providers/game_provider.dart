@@ -13,6 +13,26 @@ const _omit = Object();
 /// Default: 81 empty note sets (no pencil marks).
 List<Set<int>> _emptyCellNotes() => List.generate(81, (_) => <int>{});
 
+/// One step in the undo history: restore this cell to [previousValue] and [previousNotes].
+class UndoStep {
+  const UndoStep({
+    required this.cellIndex,
+    required this.previousValue,
+    required this.previousNotes,
+  });
+  final int cellIndex;
+  final int previousValue;
+  final Set<int> previousNotes;
+}
+
+/// Max free undos per level (Expert = 0, each undo via ad).
+int _maxUndoForLevel(Level level) => switch (level) {
+      Level.easy => 12,
+      Level.medium => 6,
+      Level.hard => 3,
+      Level.expert => 0,
+    };
+
 /// Game state: 81 cells (index 0..80), solution, selected index, difficulty, timer, hints, notes.
 class GameState {
   GameState({
@@ -30,7 +50,10 @@ class GameState {
     List<Set<int>>? cellNotes,
     this.conflictFlashCellIndices = const {},
     this.conflictFlashDigit,
-  }) : cellNotes = cellNotes ?? _emptyCellNotes();
+    this.undoStack = const [],
+    int? undoRemaining,
+  })  : cellNotes = cellNotes ?? _emptyCellNotes(),
+        undoRemaining = undoRemaining ?? _maxUndoForLevel(Level.easy);
 
   final List<SudokuCell> cells;
   final List<int> solution;
@@ -52,6 +75,10 @@ class GameState {
   final Set<int> conflictFlashCellIndices;
   /// Digit (1-9) whose number-pad button is flashing red. Null when no flash.
   final int? conflictFlashDigit;
+  /// Undo history (not persisted). Newest at end.
+  final List<UndoStep> undoStack;
+  /// Free undos left this game. Expert = 0 (every undo via ad).
+  final int undoRemaining;
 
   SudokuCell cellAt(int index) => cells[index];
 
@@ -118,6 +145,8 @@ class GameState {
     List<Set<int>>? cellNotes,
     Set<int>? conflictFlashCellIndices,
     Object? conflictFlashDigit = _omit,
+    List<UndoStep>? undoStack,
+    int? undoRemaining,
   }) {
     return GameState(
       cells: cells ?? this.cells,
@@ -134,6 +163,8 @@ class GameState {
       cellNotes: cellNotes ?? this.cellNotes,
       conflictFlashCellIndices: conflictFlashCellIndices ?? this.conflictFlashCellIndices,
       conflictFlashDigit: identical(conflictFlashDigit, _omit) ? this.conflictFlashDigit : conflictFlashDigit as int?,
+      undoStack: undoStack ?? this.undoStack,
+      undoRemaining: undoRemaining ?? this.undoRemaining,
     );
   }
 }
@@ -250,6 +281,8 @@ class GameNotifier extends StateNotifier<GameState> {
         errorsMade: errorsMade,
         isNotesMode: isNotesMode,
         cellNotes: notes,
+        undoStack: [],
+        undoRemaining: _maxUndoForLevel(level),
       );
       _revalidateWrong();
     } catch (_) {
@@ -336,6 +369,8 @@ class GameNotifier extends StateNotifier<GameState> {
       hintsUsedThisGame: 0,
       errorsMade: 0,
       cellNotes: _emptyCellNotes(),
+      undoStack: [],
+      undoRemaining: _maxUndoForLevel(level),
     );
     _revalidateWrong();
     _startTimer();
@@ -346,6 +381,18 @@ class GameNotifier extends StateNotifier<GameState> {
     if (state.isWon) return;
     state = state.copyWith(selectedCellIndex: index);
   }
+
+  /// Push current cell state to undo stack. Call before modifying. Hard/Expert: only for main value changes (setCellValue/clearCell).
+  void _pushUndoStep(int cellIndex) {
+    final cell = state.cells[cellIndex];
+    final notes = Set<int>.from(state.cellNotes[cellIndex]);
+    final step = UndoStep(cellIndex: cellIndex, previousValue: cell.value, previousNotes: notes);
+    state = state.copyWith(undoStack: [...state.undoStack, step]);
+  }
+
+  /// Easy/Medium record notes changes; Hard/Expert do not.
+  bool get _undoRecordsNotes =>
+      state.difficulty == Level.easy || state.difficulty == Level.medium;
 
   void toggleNotesMode() {
     if (state.isWon) return;
@@ -415,6 +462,7 @@ class GameNotifier extends StateNotifier<GameState> {
     final notes = Set<int>.from(state.cellNotes[idx]);
 
     if (notes.contains(digit)) {
+      if (_undoRecordsNotes) _pushUndoStep(idx);
       notes.remove(digit);
       final newNotes = List<Set<int>>.from(state.cellNotes);
       newNotes[idx] = notes;
@@ -439,11 +487,58 @@ class GameNotifier extends StateNotifier<GameState> {
       return;
     }
 
+    if (_undoRecordsNotes) _pushUndoStep(idx);
     notes.add(digit);
     final newNotes = List<Set<int>>.from(state.cellNotes);
     newNotes[idx] = notes;
     state = state.copyWith(cellNotes: newNotes);
     _persistGame();
+  }
+
+  /// Performs one undo (when user has free undos). Returns false if stack empty or no remaining.
+  bool undo() {
+    if (state.undoStack.isEmpty) return false;
+    if (state.undoRemaining <= 0 && state.difficulty != Level.expert) return false;
+    _performOneUndo();
+    if (state.difficulty != Level.expert) {
+      state = state.copyWith(undoRemaining: state.undoRemaining - 1);
+    }
+    _persistGame();
+    return true;
+  }
+
+  /// After watching ad: refill free undos (Easy/Medium/Hard).
+  void refillUndoAfterAd() {
+    state = state.copyWith(undoRemaining: _maxUndoForLevel(state.difficulty));
+    _persistGame();
+  }
+
+  /// After watching ad on Expert: perform one undo without using a free slot.
+  bool performUndoAfterAd() {
+    if (state.undoStack.isEmpty) return false;
+    _performOneUndo();
+    _persistGame();
+    return true;
+  }
+
+  void _performOneUndo() {
+    final stack = List<UndoStep>.from(state.undoStack);
+    if (stack.isEmpty) return;
+    final step = stack.removeLast();
+    state = state.copyWith(undoStack: stack);
+
+    final idx = step.cellIndex;
+    final cell = state.cells[idx];
+    final wasWrong = cell.isWrong;
+    final newCells = List<SudokuCell>.from(state.cells);
+    newCells[idx] = cell.copyWith(value: step.previousValue, isHint: false);
+    final newNotes = List<Set<int>>.from(state.cellNotes);
+    newNotes[idx] = Set<int>.from(step.previousNotes);
+    state = state.copyWith(cells: newCells, cellNotes: newNotes);
+    _revalidateWrong();
+    if (state.difficulty == Level.easy && wasWrong && state.errorsMade > 0) {
+      state = state.copyWith(errorsMade: state.errorsMade - 1);
+    }
   }
 
   /// Clear all notes in selected cell (Notes mode). No-op if no selection.
@@ -452,6 +547,7 @@ class GameNotifier extends StateNotifier<GameState> {
     final idx = state.selectedCellIndex;
     if (idx == null) return;
     if (state.cellNotes[idx].isEmpty) return;
+    if (_undoRecordsNotes) _pushUndoStep(idx);
     final newNotes = List<Set<int>>.from(state.cellNotes);
     newNotes[idx] = <int>{};
     state = state.copyWith(cellNotes: newNotes);
@@ -466,6 +562,7 @@ class GameNotifier extends StateNotifier<GameState> {
     final cell = state.cells[idx];
     if (cell.isOriginal) return;
 
+    _pushUndoStep(idx);
     final previousComplete = _completeRegionIds(state);
     final newCells = List<SudokuCell>.from(state.cells);
     newCells[idx] = cell.copyWith(value: digit, isHint: false);
@@ -497,6 +594,7 @@ class GameNotifier extends StateNotifier<GameState> {
     final cell = state.cells[idx];
     if (cell.isOriginal) return;
 
+    _pushUndoStep(idx);
     final newCells = List<SudokuCell>.from(state.cells);
     newCells[idx] = cell.copyWith(value: 0, isHint: false);
     state = state.copyWith(cells: newCells);
