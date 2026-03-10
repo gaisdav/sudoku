@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'screens/home_screen.dart';
+import 'services/app_open_ad_service.dart';
 import 'services/game_storage.dart';
 
 void main() async {
@@ -27,8 +28,44 @@ void main() async {
   runApp(const ProviderScope(child: SudokuApp()));
 }
 
-class SudokuApp extends StatelessWidget {
+class SudokuApp extends StatefulWidget {
   const SudokuApp({super.key});
+
+  @override
+  State<SudokuApp> createState() => _SudokuAppState();
+}
+
+class _SudokuAppState extends State<SudokuApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppOpenAdService.maybeShowColdStart();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.inactive:
+        AppOpenAdService.onAppPaused();
+        break;
+      case AppLifecycleState.resumed:
+        AppOpenAdService.maybeShowResume();
+        break;
+      case AppLifecycleState.detached:
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

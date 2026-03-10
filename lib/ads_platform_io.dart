@@ -19,3 +19,9 @@ String get interstitialAdUnitId {
   if (Platform.isIOS) return Env.admobInterstitialIdIos;
   return Env.admobInterstitialIdAndroid;
 }
+
+/// ID рекламы при открытии приложения (App Open).
+String get appOpenAdUnitId {
+  if (Platform.isIOS) return Env.admobAppOpenIdIos;
+  return Env.admobAppOpenIdAndroid;
+}
