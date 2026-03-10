@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'screens/home_screen.dart';
@@ -7,6 +8,10 @@ import 'services/game_storage.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await GameStorage.init();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
   runApp(const ProviderScope(child: SudokuApp()));
 }
 

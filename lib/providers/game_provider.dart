@@ -10,9 +10,12 @@ import '../services/game_storage.dart';
 
 const _omit = Object();
 
-/// Game state: 81 cells (index 0..80), solution, selected index, difficulty, timer, hints.
+/// Default: 81 empty note sets (no pencil marks).
+List<Set<int>> _emptyCellNotes() => List.generate(81, (_) => <int>{});
+
+/// Game state: 81 cells (index 0..80), solution, selected index, difficulty, timer, hints, notes.
 class GameState {
-  const GameState({
+  GameState({
     required this.cells,
     required this.solution,
     this.selectedCellIndex,
@@ -23,7 +26,11 @@ class GameState {
     this.gameOverDialogShown = false,
     this.errorsMade = 0,
     this.justCompletedRegionIds = const {},
-  });
+    this.isNotesMode = false,
+    List<Set<int>>? cellNotes,
+    this.conflictFlashCellIndices = const {},
+    this.conflictFlashDigit,
+  }) : cellNotes = cellNotes ?? _emptyCellNotes();
 
   final List<SudokuCell> cells;
   final List<int> solution;
@@ -37,6 +44,14 @@ class GameState {
   final int errorsMade;
   /// Region ids ('r:0', 'c:1', 'b:0:1') that just became complete (for fill animation). Cleared after ~400ms.
   final Set<String> justCompletedRegionIds;
+  /// Notes mode: digits go into cell notes (pencil marks) instead of main value.
+  final bool isNotesMode;
+  /// Per-cell notes (1-9). Length 81; empty set when no notes. Cleared when main value is set.
+  final List<Set<int>> cellNotes;
+  /// Cell indices to show red conflict flash (tried to add invalid note). Cleared after ~600ms.
+  final Set<int> conflictFlashCellIndices;
+  /// Digit (1-9) whose number-pad button is flashing red. Null when no flash.
+  final int? conflictFlashDigit;
 
   SudokuCell cellAt(int index) => cells[index];
 
@@ -99,6 +114,10 @@ class GameState {
     bool? gameOverDialogShown,
     int? errorsMade,
     Set<String>? justCompletedRegionIds,
+    bool? isNotesMode,
+    List<Set<int>>? cellNotes,
+    Set<int>? conflictFlashCellIndices,
+    Object? conflictFlashDigit = _omit,
   }) {
     return GameState(
       cells: cells ?? this.cells,
@@ -111,6 +130,10 @@ class GameState {
       gameOverDialogShown: gameOverDialogShown ?? this.gameOverDialogShown,
       errorsMade: errorsMade ?? this.errorsMade,
       justCompletedRegionIds: justCompletedRegionIds ?? this.justCompletedRegionIds,
+      isNotesMode: isNotesMode ?? this.isNotesMode,
+      cellNotes: cellNotes ?? this.cellNotes,
+      conflictFlashCellIndices: conflictFlashCellIndices ?? this.conflictFlashCellIndices,
+      conflictFlashDigit: identical(conflictFlashDigit, _omit) ? this.conflictFlashDigit : conflictFlashDigit as int?,
     );
   }
 }
@@ -133,6 +156,7 @@ class GameNotifier extends StateNotifier<GameState> {
 
   Timer? _timer;
   Timer? _justCompletedTimer;
+  Timer? _conflictFlashTimer;
 
   static Set<String> _completeRegionIds(GameState s) {
     final set = <String>{};
@@ -205,6 +229,16 @@ class GameNotifier extends StateNotifier<GameState> {
       final solution = solList.map((e) => (e as num).toInt()).toList();
       final hintsUsed = (data[GameStorage.keyHintsUsedThisGame] as num?)?.toInt() ?? 0;
       final errorsMade = (data[GameStorage.keyErrorsMade] as num?)?.toInt() ?? 0;
+      final isNotesMode = data[GameStorage.keyIsNotesMode] as bool? ?? false;
+      List<Set<int>> notes = _emptyCellNotes();
+      final notesRaw = data[GameStorage.keyCellNotes] as List?;
+      if (notesRaw != null && notesRaw.length == 81) {
+        notes = List.generate(81, (i) {
+          final lst = notesRaw[i];
+          if (lst is! List) return <int>{};
+          return lst.map((e) => (e as num).toInt()).where((n) => n >= 1 && n <= 9).toSet();
+        });
+      }
       state = GameState(
         cells: cells,
         solution: solution,
@@ -214,6 +248,8 @@ class GameNotifier extends StateNotifier<GameState> {
         elapsedSeconds: elapsed,
         hintsUsedThisGame: hintsUsed,
         errorsMade: errorsMade,
+        isNotesMode: isNotesMode,
+        cellNotes: notes,
       );
       _revalidateWrong();
     } catch (_) {
@@ -271,6 +307,8 @@ class GameNotifier extends StateNotifier<GameState> {
       GameStorage.keyElapsedSeconds: state.elapsedSeconds,
       GameStorage.keyHintsUsedThisGame: state.hintsUsedThisGame,
       GameStorage.keyErrorsMade: state.errorsMade,
+      GameStorage.keyIsNotesMode: state.isNotesMode,
+      GameStorage.keyCellNotes: state.cellNotes.map((s) => s.toList()).toList(),
     };
     await GameStorage.saveGame(data);
   }
@@ -297,6 +335,7 @@ class GameNotifier extends StateNotifier<GameState> {
       elapsedSeconds: 0,
       hintsUsedThisGame: 0,
       errorsMade: 0,
+      cellNotes: _emptyCellNotes(),
     );
     _revalidateWrong();
     _startTimer();
@@ -308,7 +347,118 @@ class GameNotifier extends StateNotifier<GameState> {
     state = state.copyWith(selectedCellIndex: index);
   }
 
-  /// Sets digit in selected cell (or at index). Only editable non-original cells.
+  void toggleNotesMode() {
+    if (state.isWon) return;
+    state = state.copyWith(isNotesMode: !state.isNotesMode);
+    _persistGame();
+  }
+
+  /// Digits 1-9 that are still valid in this cell (only original digits in row/col/block block).
+  Set<int> getCandidatesForCell(int index) {
+    final row = index ~/ 9;
+    final col = index % 9;
+    final blocked = <int>{};
+    for (int i = 0; i < 9; i++) {
+      final c = state.cells[row * 9 + i];
+      if (c.isOriginal && c.value >= 1 && c.value <= 9) blocked.add(c.value);
+      final c2 = state.cells[i * 9 + col];
+      if (c2.isOriginal && c2.value >= 1 && c2.value <= 9) blocked.add(c2.value);
+    }
+    final br = (row ~/ 3) * 3;
+    final bc = (col ~/ 3) * 3;
+    for (int r = 0; r < 3; r++) {
+      for (int c = 0; c < 3; c++) {
+        final cell = state.cells[(br + r) * 9 + (bc + c)];
+        if (cell.isOriginal && cell.value >= 1 && cell.value <= 9) blocked.add(cell.value);
+      }
+    }
+    return {for (int n = 1; n <= 9; n++) n}..removeAll(blocked);
+  }
+
+  /// Indices of cells (in same row/col/block as [index]) that have original digit [digit]. Used for conflict flash.
+  Set<int> _cellsWithOriginalDigit(int index, int digit) {
+    final row = index ~/ 9;
+    final col = index % 9;
+    final result = <int>{};
+    for (int i = 0; i < 9; i++) {
+      final j = row * 9 + i;
+      if (state.cells[j].isOriginal && state.cells[j].value == digit) result.add(j);
+      final k = i * 9 + col;
+      if (state.cells[k].isOriginal && state.cells[k].value == digit) result.add(k);
+    }
+    final br = (row ~/ 3) * 3;
+    final bc = (col ~/ 3) * 3;
+    for (int r = 0; r < 3; r++) {
+      for (int c = 0; c < 3; c++) {
+        final j = (br + r) * 9 + (bc + c);
+        if (state.cells[j].isOriginal && state.cells[j].value == digit) result.add(j);
+      }
+    }
+    return result;
+  }
+
+  void _clearConflictFlash() {
+    _conflictFlashTimer?.cancel();
+    _conflictFlashTimer = null;
+    state = state.copyWith(conflictFlashCellIndices: {}, conflictFlashDigit: null);
+  }
+
+  /// Toggle note [digit] in selected cell. If digit not allowed (conflict with original), trigger red flash and do not add.
+  void toggleNote(int digit) {
+    if (state.isWon || digit < 1 || digit > 9) return;
+    final idx = state.selectedCellIndex;
+    if (idx == null) return;
+    final cell = state.cells[idx];
+    if (!cell.isEmpty) return; // no notes in filled cells
+
+    final candidates = getCandidatesForCell(idx);
+    final notes = Set<int>.from(state.cellNotes[idx]);
+
+    if (notes.contains(digit)) {
+      notes.remove(digit);
+      final newNotes = List<Set<int>>.from(state.cellNotes);
+      newNotes[idx] = notes;
+      state = state.copyWith(cellNotes: newNotes);
+      _persistGame();
+      return;
+    }
+
+    // Hard/Expert: allow any note (no validation), no conflict flash — makes the level harder.
+    final skipValidation = state.difficulty == Level.hard || state.difficulty == Level.expert;
+    if (!skipValidation && !candidates.contains(digit)) {
+      final conflictCells = _cellsWithOriginalDigit(idx, digit);
+      conflictCells.add(idx);
+      _conflictFlashTimer?.cancel();
+      state = state.copyWith(
+        conflictFlashCellIndices: conflictCells,
+        conflictFlashDigit: digit,
+      );
+      _conflictFlashTimer = Timer(const Duration(milliseconds: 600), () {
+        _clearConflictFlash();
+      });
+      return;
+    }
+
+    notes.add(digit);
+    final newNotes = List<Set<int>>.from(state.cellNotes);
+    newNotes[idx] = notes;
+    state = state.copyWith(cellNotes: newNotes);
+    _persistGame();
+  }
+
+  /// Clear all notes in selected cell (Notes mode). No-op if no selection.
+  void clearNotesInCell() {
+    if (state.isWon) return;
+    final idx = state.selectedCellIndex;
+    if (idx == null) return;
+    if (state.cellNotes[idx].isEmpty) return;
+    final newNotes = List<Set<int>>.from(state.cellNotes);
+    newNotes[idx] = <int>{};
+    state = state.copyWith(cellNotes: newNotes);
+    _persistGame();
+  }
+
+  /// Sets digit in selected cell (or at index). Only editable non-original cells. Clears notes in that cell.
   void setCellValue(int digit) {
     if (state.isWon) return;
     final idx = state.selectedCellIndex;
@@ -319,7 +469,12 @@ class GameNotifier extends StateNotifier<GameState> {
     final previousComplete = _completeRegionIds(state);
     final newCells = List<SudokuCell>.from(state.cells);
     newCells[idx] = cell.copyWith(value: digit, isHint: false);
-    state = state.copyWith(cells: newCells);
+    List<Set<int>> newNotes = state.cellNotes;
+    if (state.cellNotes[idx].isNotEmpty) {
+      newNotes = List<Set<int>>.from(state.cellNotes);
+      newNotes[idx] = <int>{};
+    }
+    state = state.copyWith(cells: newCells, cellNotes: newNotes);
     _revalidateWrong();
     if (state.cells[idx].isWrong) {
       state = state.copyWith(errorsMade: state.errorsMade + 1);
@@ -460,8 +615,14 @@ class GameNotifier extends StateNotifier<GameState> {
       value: solutionValue,
       isHint: true,
     );
+    List<Set<int>> newNotes = state.cellNotes;
+    if (state.cellNotes[target].isNotEmpty) {
+      newNotes = List<Set<int>>.from(state.cellNotes);
+      newNotes[target] = <int>{};
+    }
     state = state.copyWith(
       cells: newCells,
+      cellNotes: newNotes,
       hintsUsedThisGame: state.hintsUsedThisGame + 1,
     );
     _revalidateWrong();

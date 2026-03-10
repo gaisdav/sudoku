@@ -137,9 +137,16 @@ class _BlockGrid extends StatelessWidget {
     final isJustCompleted = justCompleted.contains('r:$row') ||
         justCompleted.contains('c:$col') ||
         justCompleted.contains('b:$blockRow:$blockCol');
+    final cellNotes = state.cellNotes.length > index ? state.cellNotes[index] : <int>{};
+    // Hard/Expert: hide error highlight in Notes mode to make it harder.
+    final showWrongHighlight = !(state.isNotesMode &&
+        (state.difficulty == Level.hard || state.difficulty == Level.expert));
     return SudokuCellWidget(
       cellIndex: index,
       cell: state.cellAt(index),
+      notes: cellNotes,
+      isConflictFlash: state.conflictFlashCellIndices.contains(index),
+      showWrongHighlight: showWrongHighlight,
       isSelected: state.selectedCellIndex == index,
       isSameRowOrColumn: isSameRowOrCol,
       isInCompleteRegion: isInCompleteRegion,

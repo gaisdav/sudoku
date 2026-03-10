@@ -7,6 +7,9 @@ class SudokuCellWidget extends StatelessWidget {
     super.key,
     required this.cellIndex,
     required this.cell,
+    this.notes = const {},
+    this.isConflictFlash = false,
+    this.showWrongHighlight = true,
     required this.isSelected,
     required this.isSameRowOrColumn,
     this.isInCompleteRegion = false,
@@ -16,6 +19,12 @@ class SudokuCellWidget extends StatelessWidget {
 
   final int cellIndex;
   final SudokuCell cell;
+  /// Pencil marks (1-9) for this cell. Shown when cell is empty.
+  final Set<int> notes;
+  /// Red flash when user tried to add invalid note (conflict with original).
+  final bool isConflictFlash;
+  /// When false (e.g. Notes mode on Hard/Expert), wrong cells are not highlighted in red.
+  final bool showWrongHighlight;
   final bool isSelected;
   final bool isSameRowOrColumn;
   /// True if this cell's row, column, or 3×3 block is fully filled (for subtle highlight).
@@ -37,7 +46,9 @@ class SudokuCellWidget extends StatelessWidget {
     const errorRed = Color(0xFFE57373);
 
     Color bg = Colors.white;
-    if (cell.isWrong) {
+    if (isConflictFlash) {
+      bg = errorRed.withValues(alpha: 0.5);
+    } else if (showWrongHighlight && cell.isWrong) {
       bg = errorRed.withValues(alpha: 0.35);
     } else if (isJustCompleted) {
       // Приоритет: вспышка «область заполнена» поверх выбора и строки/столбца/блока
@@ -50,9 +61,9 @@ class SudokuCellWidget extends StatelessWidget {
       bg = Colors.grey.shade100;
     }
 
-    // Given numbers: black. User/hint: blue. Wrong: red.
+    // Given numbers: black. User/hint: blue. Wrong: red (only when showWrongHighlight).
     Color textColor = cell.isOriginal ? black : blue;
-    if (cell.isWrong) textColor = Colors.red.shade700;
+    if (showWrongHighlight && cell.isWrong) textColor = Colors.red.shade700;
 
     return GestureDetector(
       onTap: _onTap,
@@ -79,9 +90,8 @@ class SudokuCellWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
             ),
             alignment: Alignment.center,
-            child: cell.value == 0
-                ? const SizedBox.shrink()
-                : TweenAnimationBuilder<double>(
+            child: cell.value != 0
+                ? TweenAnimationBuilder<double>(
                     key: ValueKey('$cellIndex-${cell.value}'),
                     tween: Tween(begin: 0.4, end: 1.0),
                     duration: const Duration(milliseconds: 180),
@@ -92,9 +102,54 @@ class SudokuCellWidget extends StatelessWidget {
                         child: Text('${cell.value}', style: textStyle),
                       );
                     },
-                  ),
+                  )
+                : notes.isEmpty
+                    ? const SizedBox.shrink()
+                    : _NotesGrid(notes: notes, cellSize: size),
           );
         },
+      ),
+    );
+  }
+}
+
+/// Small digits 1-9 in 3×3 positions inside the cell (1 top-left, 2 top-center, ..., 9 bottom-right).
+class _NotesGrid extends StatelessWidget {
+  const _NotesGrid({required this.notes, required this.cellSize});
+
+  final Set<int> notes;
+  final double cellSize;
+
+  static const _positions = [
+    Alignment(-1.0, -1.0), Alignment(0.0, -1.0), Alignment(1.0, -1.0),
+    Alignment(-1.0, 0.0), Alignment(0.0, 0.0), Alignment(1.0, 0.0),
+    Alignment(-1.0, 1.0), Alignment(0.0, 1.0), Alignment(1.0, 1.0),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final fontSize = (cellSize / 3 * 0.7).clamp(8.0, 14.0);
+    return SizedBox.expand(
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          for (int n = 1; n <= 9; n++)
+            if (notes.contains(n))
+              Align(
+                alignment: _positions[n - 1],
+                child: Padding(
+                  padding: EdgeInsets.all(cellSize * 0.04),
+                  child: Text(
+                    '$n',
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+        ],
       ),
     );
   }

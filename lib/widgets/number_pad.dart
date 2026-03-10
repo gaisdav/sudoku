@@ -25,7 +25,9 @@ class NumberPad extends ConsumerWidget {
     final notifier = ref.read(gameProvider.notifier);
     final hasSelection = state.selectedCellIndex != null;
     final canEdit = hasSelection && !state.isWon;
-    final showRemaining = state.difficulty == Level.easy || state.difficulty == Level.medium;
+    final isNotesMode = state.isNotesMode;
+    // In Notes mode hide remaining counts; otherwise show on Easy/Medium.
+    final showRemaining = !isNotesMode && (state.difficulty == Level.easy || state.difficulty == Level.medium);
     final remaining = showRemaining ? _remainingCounts(state) : null;
 
     return LayoutBuilder(
@@ -48,15 +50,15 @@ class NumberPad extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [1, 2, 3, 4, 5]
-                    .map((n) => _padCell(context, n, canEdit, notifier, remaining?[n], buttonSize, padding))
+                    .map((n) => _padCell(context, n, canEdit, isNotesMode, notifier, state, remaining?[n], buttonSize, padding))
                     .toList(),
               ),
               const SizedBox(height: gap),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  for (int n in [6, 7, 8, 9]) _padCell(context, n, canEdit, notifier, remaining?[n], buttonSize, padding),
-                  _clearCell(context, canEdit, notifier, buttonSize, padding),
+                  for (int n in [6, 7, 8, 9]) _padCell(context, n, canEdit, isNotesMode, notifier, state, remaining?[n], buttonSize, padding),
+                  _clearCell(context, canEdit, isNotesMode, notifier, buttonSize, padding),
                 ],
               ),
             ],
@@ -70,30 +72,38 @@ class NumberPad extends ConsumerWidget {
     BuildContext context,
     int n,
     bool canEdit,
-    GameNotifier notifier, [
+    bool isNotesMode,
+    GameNotifier notifier,
+    GameState state, [
     int? remaining,
     double buttonSize = 52,
     double padding = 5,
   ]) {
-    // On Easy/Medium: block digit if all 9 are already placed (remaining == 0).
-    final digitEnabled = remaining == null || remaining > 0;
+    final digitEnabled = isNotesMode || remaining == null || remaining > 0;
+    final isConflictFlash = state.conflictFlashDigit == n;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: padding),
       child: _NumButton(
         size: buttonSize,
         label: '$n',
         remaining: remaining != null && remaining > 0 ? remaining : null,
+        isConflictFlash: isConflictFlash,
         onPressed: canEdit && digitEnabled
             ? () {
-                HapticFeedback.lightImpact();
-                notifier.setCellValue(n);
+                if (isNotesMode) {
+                  HapticFeedback.lightImpact();
+                  notifier.toggleNote(n);
+                } else {
+                  HapticFeedback.lightImpact();
+                  notifier.setCellValue(n);
+                }
               }
             : null,
       ),
     );
   }
 
-  Widget _clearCell(BuildContext context, bool canEdit, GameNotifier notifier, [double buttonSize = 52, double padding = 5]) {
+  Widget _clearCell(BuildContext context, bool canEdit, bool isNotesMode, GameNotifier notifier, [double buttonSize = 52, double padding = 5]) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: padding),
       child: _NumButton(
@@ -102,7 +112,11 @@ class NumberPad extends ConsumerWidget {
         onPressed: canEdit
             ? () {
                 HapticFeedback.selectionClick();
-                notifier.clearCell();
+                if (isNotesMode) {
+                  notifier.clearNotesInCell();
+                } else {
+                  notifier.clearCell();
+                }
               }
             : null,
       ),
@@ -116,14 +130,17 @@ class _NumButton extends StatelessWidget {
     this.label,
     this.icon,
     this.remaining,
+    this.isConflictFlash = false,
     this.onPressed,
   });
 
   final double size;
   final String? label;
   final IconData? icon;
-  /// Shown top-right on Easy/Medium when > 0 (how many of this digit left to place).
+  /// Shown top-right on Easy/Medium when > 0 (how many of this digit left to place). Hidden in Notes mode.
   final int? remaining;
+  /// Red flash when this digit was rejected as note (conflict with original).
+  final bool isConflictFlash;
   final VoidCallback? onPressed;
 
   @override
@@ -147,9 +164,11 @@ class _NumButton extends StatelessWidget {
           );
 
     final borderRadius = (size * 0.23).clamp(8.0, 12.0);
+    final borderColor = isConflictFlash ? Colors.red : Colors.grey.shade300;
+    final bgColor = isConflictFlash ? Colors.red.shade50 : Colors.white;
 
     return Material(
-      color: Colors.white,
+      color: bgColor,
       borderRadius: BorderRadius.circular(borderRadius),
       child: InkWell(
         onTap: onPressed,
@@ -159,7 +178,7 @@ class _NumButton extends StatelessWidget {
           height: size,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(borderRadius),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: borderColor, width: isConflictFlash ? 2 : 1),
           ),
           alignment: Alignment.center,
           child: remaining != null

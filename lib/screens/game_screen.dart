@@ -278,14 +278,18 @@ class _GameScreenBody extends ConsumerWidget {
                       onPressed: null,
                     ),
                   ),
-                  const Visibility(
-                    visible: false,
-                    child: _ActionButton(
-                      icon: Icons.edit_note,
-                      label: 'Notes',
-                      onPressed: null,
-                    ),
+                  _ActionButton(
+                    icon: Icons.edit_note,
+                    label: 'Notes',
+                    isActive: state.isNotesMode,
+                    onPressed: state.isWon
+                        ? null
+                        : () {
+                            HapticFeedback.selectionClick();
+                            notifier.toggleNotesMode();
+                          },
                   ),
+                  const SizedBox(width: 16),
                   _ActionButton(
                     icon: Icons.lightbulb_outline,
                     label: 'Hint',
@@ -371,19 +375,22 @@ class _ActionButton extends StatelessWidget {
     required this.icon,
     required this.label,
     this.badge,
+    this.isActive = false,
     this.onPressed,
   });
 
   final IconData icon;
   final String label;
   final String? badge;
+  final bool isActive;
   final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
+    final active = isActive && enabled;
     return Material(
-      color: Colors.white,
+      color: active ? _blue.withValues(alpha: 0.15) : Colors.white,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onPressed,
@@ -392,7 +399,10 @@ class _ActionButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(
+              color: active ? _blue : Colors.grey.shade300,
+              width: 1,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -400,7 +410,7 @@ class _ActionButton extends StatelessWidget {
               Icon(
                 icon,
                 size: 22,
-                color: enabled ? _blue : Colors.grey.shade400,
+                color: active ? _blue : (enabled ? _blue : Colors.grey.shade400),
               ),
               if (badge != null) ...[
                 const SizedBox(width: 6),
@@ -408,7 +418,7 @@ class _ActionButton extends StatelessWidget {
                   badge!,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: enabled ? _blue : Colors.grey.shade400,
+                    color: active ? _blue : (enabled ? _blue : Colors.grey.shade400),
                     fontSize: 14,
                   ),
                 ),
@@ -418,8 +428,8 @@ class _ActionButton extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: enabled ? Colors.grey.shade800 : Colors.grey.shade400,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                  color: active ? _blue : (enabled ? Colors.grey.shade800 : Colors.grey.shade400),
                 ),
               ),
             ],
