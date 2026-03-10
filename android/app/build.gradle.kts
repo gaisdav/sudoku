@@ -5,6 +5,21 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// AdMob App ID из .env в корне проекта (или .env.example)
+val projectRoot = rootProject.projectDir.parentFile!!
+val envFile = java.io.File(projectRoot, ".env").takeIf { it.exists() }
+    ?: java.io.File(projectRoot, ".env.example")
+val admobAppIdAndroid = if (envFile.exists()) {
+    envFile.readLines()
+        .firstOrNull { it.trimStart().startsWith("ADMOB_APP_ID_ANDROID=") }
+        ?.substringAfter("=", "")
+        ?.trim()
+        ?.trim('"')
+        ?: "ca-app-pub-3940256099942544~3347511713"
+} else {
+    "ca-app-pub-3940256099942544~3347511713"
+}
+
 // Подпись релиза для Google Play (создайте android/key.properties и keystore)
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = mutableMapOf<String, String>()
@@ -54,6 +69,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["adMobApplicationId"] = admobAppIdAndroid
         // Только ARM — меньше размер AAB (x86/x86_64 только для эмулятора)
         ndk {
             abiFilters.clear()
