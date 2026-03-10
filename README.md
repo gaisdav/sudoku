@@ -56,3 +56,13 @@ export PATH="$HOME/flutter/bin:$PATH"
 Then run `source ~/.zshrc` or open a new terminal and try `flutter --version`.
 
 **If Flutter is not installed** — install it from [flutter.dev](https://docs.flutter.dev/get-started/install) or with Homebrew: `brew install --cask flutter`.
+
+## Build for Google Play (release AAB)
+
+From the project root:
+
+```bash
+flutter build appbundle --obfuscate --split-debug-info=build/app/outputs/symbols
+```
+
+Output: `build/app/outputs/bundle/release/app-release.aab`. Keep the `symbols` folder for decoding crash stack traces (do not commit it). See [GOOGLE_PLAY_PUBLISH.md](GOOGLE_PLAY_PUBLISH.md) for the full publishing guide.
