@@ -10,6 +10,7 @@ class SudokuCellWidget extends StatelessWidget {
     this.notes = const {},
     this.isConflictFlash = false,
     this.showWrongHighlight = true,
+    this.highlightDigit,
     required this.isSelected,
     required this.isSameRowOrColumn,
     this.isInCompleteRegion = false,
@@ -25,6 +26,8 @@ class SudokuCellWidget extends StatelessWidget {
   final bool isConflictFlash;
   /// When false (e.g. Notes mode on Hard/Expert), wrong cells are not highlighted in red.
   final bool showWrongHighlight;
+  /// Easy/Medium: digit to highlight (same as selected cell). All cells with this value get a light tint.
+  final int? highlightDigit;
   final bool isSelected;
   final bool isSameRowOrColumn;
   /// True if this cell's row, column, or 3×3 block is fully filled (for subtle highlight).
@@ -55,6 +58,9 @@ class SudokuCellWidget extends StatelessWidget {
       bg = Colors.green.shade50;
     } else if (isSelected) {
       bg = lightBlue;
+    } else if (highlightDigit != null && cell.value == highlightDigit) {
+      // Easy/Medium: light highlight for all cells with the same digit as selected
+      bg = Colors.green.shade50;
     } else if (isSameRowOrColumn) {
       bg = lightBlue.withValues(alpha: 0.5);
     } else if (isInCompleteRegion) {
