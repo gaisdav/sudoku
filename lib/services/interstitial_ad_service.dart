@@ -144,18 +144,28 @@ class InterstitialAdService {
   }
 
   static Widget _defaultLoadingDialog(BuildContext context) {
-    return const AlertDialog(
-      content: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(strokeWidth: 2),
+    return AlertDialog(
+      content: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 20),
+              Text(
+                'Loading ad…',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
-          SizedBox(width: 24),
-          Expanded(child: Text('Loading ad…')),
-        ],
+        ),
       ),
     );
   }
