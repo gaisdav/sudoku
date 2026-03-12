@@ -10,6 +10,13 @@ import 'game_storage.dart';
 class AppOpenAdService {
   AppOpenAdService._();
 
+  static Future<void>? _adsInitFuture;
+
+  /// Вызывать из main(): передать future инициализации AdMob, чтобы не блокировать runApp().
+  static void setAdsInitFuture(Future<InitializationStatus> future) {
+    _adsInitFuture = future.then((_) => Future.value());
+  }
+
   static const _keyColdStartCount = 'app_open_cold_start_count';
   static const _keyResumeCount = 'app_open_resume_count';
   static const _keyLastBackgroundMillis = 'app_open_last_background_millis';
@@ -35,17 +42,27 @@ class AppOpenAdService {
     }
   }
 
+  static void _whenAdsReady(void Function() action) {
+    if (_adsInitFuture != null) {
+      _adsInitFuture!.then((_) => action());
+    } else {
+      action();
+    }
+  }
+
   /// Вызывать при первом кадре после запуска приложения (cold start).
   static void maybeShowColdStart() {
     final adUnitId = appOpenAdUnitId;
     if (adUnitId.isEmpty) return;
-    try {
-      final count = _getInt(_keyColdStartCount) + 1;
-      _setInt(_keyColdStartCount, count);
-      final everyNth = AdConfig.appOpenEveryNthColdStart;
-      if (everyNth <= 0 || count % everyNth != 0) return;
-      _loadAndShow(adUnitId);
-    } catch (_) {}
+    _whenAdsReady(() {
+      try {
+        final count = _getInt(_keyColdStartCount) + 1;
+        _setInt(_keyColdStartCount, count);
+        final everyNth = AdConfig.appOpenEveryNthColdStart;
+        if (everyNth <= 0 || count % everyNth != 0) return;
+        _loadAndShow(adUnitId);
+      } catch (_) {}
+    });
   }
 
   /// Вызывать при переходе приложения в фон (paused).
@@ -71,7 +88,7 @@ class AppOpenAdService {
       _setInt(_keyResumeCount, count);
       final everyNth = AdConfig.appOpenEveryNthResume;
       if (everyNth <= 0 || count % everyNth != 0) return;
-      _loadAndShow(adUnitId);
+      _whenAdsReady(() => _loadAndShow(adUnitId));
     } catch (_) {}
   }
 

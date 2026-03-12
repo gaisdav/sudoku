@@ -384,99 +384,118 @@ class _GameScreenBody extends ConsumerWidget {
                 ],
               ),
             ),
-            const Expanded(child: SudokuGrid()),
-            // Undo, Notes, Hint — размер зависит от ширины экрана (компактно на телефонах, крупнее на планшетах)
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final w = constraints.maxWidth;
-                final scale = ((w - _kActionCompactWidth) / (_kActionLargeWidth - _kActionCompactWidth))
-                    .clamp(0.0, 1.0);
-                final outerH = 8.0 + scale * 8.0; // 8 .. 16
-                final gap = 8.0 + scale * 8.0;    // 8 .. 16
-                return Padding(
-                  padding: EdgeInsets.symmetric(horizontal: outerH, vertical: 8),
-                  child: Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: gap,
-                    runSpacing: gap,
-                    children: [
-                      _ActionButton(
-                        icon: Icons.undo,
-                        label: 'Undo',
-                        badge: _undoBadge(state),
-                        actionScale: scale,
-                        onPressed: _undoEnabled(state)
-                            ? () => _onUndoTap(context, ref, state)
-                            : null,
-                      ),
-                      _ActionButton(
-                        icon: Icons.edit_note,
-                        label: 'Notes',
-                        isActive: state.isNotesMode,
-                        actionScale: scale,
-                        onPressed: state.isWon
-                            ? null
-                            : () {
-                                HapticFeedback.selectionClick();
-                                notifier.onAppPaused();
-                                InterstitialAdService.tryShowInterstitial(
-                                  context,
-                                  InterstitialTrigger.notes,
-                                  onDone: () {
-                                    notifier.onAppResumed();
-                                    notifier.toggleNotesMode();
-                                  },
-                                );
-                              },
-                      ),
-                      _ActionButton(
-                        icon: Icons.lightbulb_outline,
-                        label: 'Hint',
-                        badge: state.freeHintsLeft > 0 ? '${state.freeHintsLeft}' : 'Ad',
-                        actionScale: scale,
-                        onPressed: state.isWon
-                            ? null
-                            : () async {
-                                HapticFeedback.lightImpact();
-                                final applied = notifier.applyHint();
-                                if (!applied) {
-                                  if (!context.mounted) return;
-                                  notifier.onAppPaused();
-                                  showDialog<void>(
-                                    context: context,
-                                    barrierDismissible: false,
-                                    builder: (_) => const _LoadingAdDialog(),
-                                  );
-                                  showRewardedAd(
-                                    context,
-                                    onAdReadyToShow: () {
-                                      if (context.mounted) Navigator.of(context).pop();
-                                    },
-                                    onRewarded: () => notifier.applyHintFromAd(),
-                                    onDismissed: () => notifier.onAppResumed(),
-                                    onNotAvailable: () {
-                                      if (context.mounted) {
-                                        Navigator.of(context).pop();
-                                        notifier.applyHintFromAd();
-                                        notifier.onAppResumed();
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Ad not available. Hint applied.'),
-                                            duration: Duration(seconds: 2),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                  );
-                                }
-                              },
-                      ),
-                    ],
+            // Сетка и блок «кнопки + numpad» делят пространство: на больших экранах нижний блок центрируется по высоте
+            Expanded(
+              child: Column(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: const SudokuGrid(),
                   ),
-                );
-              },
+                  Expanded(
+                    flex: 1,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final w = constraints.maxWidth;
+                        final scale = ((w - _kActionCompactWidth) / (_kActionLargeWidth - _kActionCompactWidth))
+                            .clamp(0.0, 1.0);
+                        final outerH = 8.0 + scale * 8.0; // 8 .. 16
+                        final gap = 8.0 + scale * 8.0;   // 8 .. 16
+                        return Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: outerH, vertical: 8),
+                                child: Wrap(
+                                  alignment: WrapAlignment.center,
+                                  spacing: gap,
+                                  runSpacing: gap,
+                                  children: [
+                                    _ActionButton(
+                                      icon: Icons.undo,
+                                      label: 'Undo',
+                                      badge: _undoBadge(state),
+                                      actionScale: scale,
+                                      onPressed: _undoEnabled(state)
+                                          ? () => _onUndoTap(context, ref, state)
+                                          : null,
+                                    ),
+                                    _ActionButton(
+                                      icon: Icons.edit_note,
+                                      label: 'Notes',
+                                      isActive: state.isNotesMode,
+                                      actionScale: scale,
+                                      onPressed: state.isWon
+                                          ? null
+                                          : () {
+                                              HapticFeedback.selectionClick();
+                                              notifier.onAppPaused();
+                                              InterstitialAdService.tryShowInterstitial(
+                                                context,
+                                                InterstitialTrigger.notes,
+                                                onDone: () {
+                                                  notifier.onAppResumed();
+                                                  notifier.toggleNotesMode();
+                                                },
+                                              );
+                                            },
+                                    ),
+                                    _ActionButton(
+                                      icon: Icons.lightbulb_outline,
+                                      label: 'Hint',
+                                      badge: state.freeHintsLeft > 0 ? '${state.freeHintsLeft}' : 'Ad',
+                                      actionScale: scale,
+                                      onPressed: state.isWon
+                                          ? null
+                                          : () async {
+                                              HapticFeedback.lightImpact();
+                                              final applied = notifier.applyHint();
+                                              if (!applied) {
+                                                if (!context.mounted) return;
+                                                notifier.onAppPaused();
+                                                showDialog<void>(
+                                                  context: context,
+                                                  barrierDismissible: false,
+                                                  builder: (_) => const _LoadingAdDialog(),
+                                                );
+                                                showRewardedAd(
+                                                  context,
+                                                  onAdReadyToShow: () {
+                                                    if (context.mounted) Navigator.of(context).pop();
+                                                  },
+                                                  onRewarded: () => notifier.applyHintFromAd(),
+                                                  onDismissed: () => notifier.onAppResumed(),
+                                                  onNotAvailable: () {
+                                                    if (context.mounted) {
+                                                      Navigator.of(context).pop();
+                                                      notifier.applyHintFromAd();
+                                                      notifier.onAppResumed();
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        const SnackBar(
+                                                          content: Text('Ad not available. Hint applied.'),
+                                                          duration: Duration(seconds: 2),
+                                                        ),
+                                                      );
+                                                    }
+                                                  },
+                                                );
+                                              }
+                                            },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const NumberPad(),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const NumberPad(),
             const BannerAdWidget(collapsible: true),
           ],
         ),

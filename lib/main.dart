@@ -17,9 +17,9 @@ void main() async {
     await dotenv.load(fileName: '.env.example');
   }
   await GameStorage.init();
-  // Инициализация AdMob только на Android/iOS (на Web и macOS плагин не реализован)
+  // Инициализация AdMob в фоне — не блокируем показ UI (иначе 10+ сек чёрный экран в release).
   try {
-    await MobileAds.instance.initialize();
+    AppOpenAdService.setAdsInitFuture(MobileAds.instance.initialize());
   } catch (_) {}
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
