@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import '../config/app_colors.dart';
 import '../models/sudoku_cell.dart';
 
 class SudokuCellWidget extends StatelessWidget {
@@ -43,33 +45,30 @@ class SudokuCellWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const blue = Color(0xFF2196F3);
-    const lightBlue = Color(0xFFE3F2FD);
-    const black = Color(0xFF212121);
-    const errorRed = Color(0xFFE57373);
+    final colors = context.appColors;
 
-    Color bg = Colors.white;
+    Color bg = colors.surface;
     if (isConflictFlash) {
-      bg = errorRed.withValues(alpha: 0.5);
+      bg = colors.error.withValues(alpha: 0.5);
     } else if (showWrongHighlight && cell.isWrong) {
-      bg = errorRed.withValues(alpha: 0.35);
+      bg = colors.error.withValues(alpha: 0.35);
     } else if (isJustCompleted) {
       // Приоритет: вспышка «область заполнена» поверх выбора и строки/столбца/блока
-      bg = Colors.green.shade50;
+      bg = colors.successLight;
     } else if (isSelected) {
-      bg = lightBlue;
+      bg = colors.primaryLight;
     } else if (highlightDigit != null && cell.value == highlightDigit) {
       // Easy/Medium: light highlight for all cells with the same digit as selected
-      bg = Colors.green.shade50;
+      bg = colors.successLight;
     } else if (isSameRowOrColumn) {
-      bg = lightBlue.withValues(alpha: 0.5);
+      bg = colors.primaryLight.withValues(alpha: 0.5);
     } else if (isInCompleteRegion) {
-      bg = Colors.grey.shade100;
+      bg = colors.cellRegionComplete;
     }
 
-    // Given numbers: black. User/hint: blue. Wrong: red (only when showWrongHighlight).
-    Color textColor = cell.isOriginal ? black : blue;
-    if (showWrongHighlight && cell.isWrong) textColor = Colors.red.shade700;
+    // Given numbers: textPrimary. User/hint: primary. Wrong: errorDark (only when showWrongHighlight).
+    Color textColor = cell.isOriginal ? colors.textPrimary : colors.primary;
+    if (showWrongHighlight && cell.isWrong) textColor = colors.errorDark;
 
     return GestureDetector(
       onTap: _onTap,
@@ -90,7 +89,7 @@ class SudokuCellWidget extends StatelessWidget {
             decoration: BoxDecoration(
               color: bg,
               border: Border.all(
-                color: isSelected ? blue : Colors.grey.shade300,
+                color: isSelected ? colors.primary : colors.border,
                 width: isSelected ? 2 : 1,
               ),
               borderRadius: BorderRadius.circular(4),
@@ -111,7 +110,7 @@ class SudokuCellWidget extends StatelessWidget {
                   )
                 : notes.isEmpty
                     ? const SizedBox.shrink()
-                    : _NotesGrid(notes: notes, cellSize: size),
+                    : _NotesGrid(notes: notes, cellSize: size, colors: colors),
           );
         },
       ),
@@ -121,10 +120,11 @@ class SudokuCellWidget extends StatelessWidget {
 
 /// Small digits 1-9 in 3×3 positions inside the cell (1 top-left, 2 top-center, ..., 9 bottom-right).
 class _NotesGrid extends StatelessWidget {
-  const _NotesGrid({required this.notes, required this.cellSize});
+  const _NotesGrid({required this.notes, required this.cellSize, required this.colors});
 
   final Set<int> notes;
   final double cellSize;
+  final AppColors colors;
 
   static const _positions = [
     Alignment(-1.0, -1.0), Alignment(0.0, -1.0), Alignment(1.0, -1.0),
@@ -149,7 +149,7 @@ class _NotesGrid extends StatelessWidget {
                     '$n',
                     style: TextStyle(
                       fontSize: fontSize,
-                      color: Colors.grey.shade700,
+                      color: colors.textMutedDark,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

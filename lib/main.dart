@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import 'config/app_colors.dart';
 import 'screens/home_screen.dart';
 import 'services/app_open_ad_service.dart';
 import 'services/game_storage.dart';
@@ -73,9 +74,9 @@ class _SudokuAppState extends State<SudokuApp> with WidgetsBindingObserver {
       title: 'Sudoku',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2196F3),
+          seedColor: AppColors.light.primary,
           brightness: Brightness.light,
-          primary: const Color(0xFF2196F3),
+          primary: AppColors.light.primary,
         ),
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
@@ -83,6 +84,21 @@ class _SudokuAppState extends State<SudokuApp> with WidgetsBindingObserver {
           elevation: 0,
           scrolledUnderElevation: 0,
         ),
+        extensions: const [AppColors.light],
+      ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.dark.primary,
+          brightness: Brightness.dark,
+          primary: AppColors.dark.primary,
+        ),
+        useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          centerTitle: true,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
+        extensions: const [AppColors.dark],
       ),
       home: const HomeScreen(),
     );

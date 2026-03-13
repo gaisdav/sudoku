@@ -3,9 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudoku_dart/sudoku_dart.dart';
 
+import '../config/app_colors.dart';
 import '../providers/game_provider.dart';
-
-const _blue = Color(0xFF2196F3);
 
 /// Min/max side of each number-pad button so it scales on small and large screens (like the grid).
 const _kMinButtonSize = 40.0;
@@ -45,24 +44,25 @@ class NumberPad extends ConsumerWidget {
             .floorToDouble();
         const padding = gap / 2;
 
+        final colors = context.appColors;
         return Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          color: Colors.grey.shade50,
+          color: colors.background,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [1, 2, 3, 4, 5]
-                    .map((n) => _padCell(context, n, canEdit, isNotesMode, notifier, state, remaining?[n], buttonSize, padding))
+                    .map((n) => _padCell(context, n, canEdit, isNotesMode, notifier, state, remaining?[n], buttonSize, padding, colors))
                     .toList(),
               ),
               const SizedBox(height: gap),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  for (int n in [6, 7, 8, 9]) _padCell(context, n, canEdit, isNotesMode, notifier, state, remaining?[n], buttonSize, padding),
-                  _clearCell(context, canEdit, isNotesMode, notifier, buttonSize, padding),
+                  for (int n in [6, 7, 8, 9]) _padCell(context, n, canEdit, isNotesMode, notifier, state, remaining?[n], buttonSize, padding, colors),
+                  _clearCell(context, canEdit, isNotesMode, notifier, buttonSize, padding, colors),
                 ],
               ),
             ],
@@ -82,12 +82,15 @@ class NumberPad extends ConsumerWidget {
     int? remaining,
     double buttonSize = 52,
     double padding = 5,
+    AppColors? colors,
   ]) {
+    final c = colors ?? context.appColors;
     final digitEnabled = isNotesMode || remaining == null || remaining > 0;
     final isConflictFlash = state.conflictFlashDigit == n;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: padding),
       child: _NumButton(
+        colors: c,
         size: buttonSize,
         label: '$n',
         remaining: remaining != null && remaining > 0 ? remaining : null,
@@ -107,10 +110,12 @@ class NumberPad extends ConsumerWidget {
     );
   }
 
-  Widget _clearCell(BuildContext context, bool canEdit, bool isNotesMode, GameNotifier notifier, [double buttonSize = 52, double padding = 5]) {
+  Widget _clearCell(BuildContext context, bool canEdit, bool isNotesMode, GameNotifier notifier, [double buttonSize = 52, double padding = 5, AppColors? colors]) {
+    final c = colors ?? context.appColors;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: padding),
       child: _NumButton(
+        colors: c,
         size: buttonSize,
         icon: Icons.close,
         onPressed: canEdit
@@ -130,6 +135,7 @@ class NumberPad extends ConsumerWidget {
 
 class _NumButton extends StatelessWidget {
   const _NumButton({
+    required this.colors,
     this.size = 52,
     this.label,
     this.icon,
@@ -138,6 +144,7 @@ class _NumButton extends StatelessWidget {
     this.onPressed,
   });
 
+  final AppColors colors;
   final double size;
   final String? label;
   final IconData? icon;
@@ -158,18 +165,18 @@ class _NumButton extends StatelessWidget {
             style: TextStyle(
               fontSize: fontSize,
               fontWeight: FontWeight.w500,
-              color: enabled ? _blue : Colors.grey.shade400,
+              color: enabled ? colors.primary : colors.disabled,
             ),
           )
         : Icon(
             icon,
             size: iconSize,
-            color: enabled ? _blue : Colors.grey.shade400,
+            color: enabled ? colors.primary : colors.disabled,
           );
 
     final borderRadius = (size * 0.23).clamp(8.0, 16.0);
-    final borderColor = isConflictFlash ? Colors.red : Colors.grey.shade300;
-    final bgColor = isConflictFlash ? Colors.red.shade50 : Colors.white;
+    final borderColor = isConflictFlash ? colors.error : colors.border;
+    final bgColor = isConflictFlash ? colors.errorLight : colors.surface;
 
     return Material(
       color: bgColor,
@@ -198,7 +205,7 @@ class _NumButton extends StatelessWidget {
                         style: TextStyle(
                           fontSize: (size * 0.21).clamp(9.0, 14.0),
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade600,
+                          color: colors.textMuted,
                         ),
                       ),
                     ),

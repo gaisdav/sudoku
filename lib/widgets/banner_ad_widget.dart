@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../config/app_colors.dart';
 import '../ads_platform.dart';
 
 /// Баннерная реклама (anchored adaptive) для размещения внизу экрана.
@@ -133,8 +134,9 @@ class _CollapseChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
     return Material(
-      color: Colors.grey.shade200,
+      color: colors.chipBackground,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -144,7 +146,7 @@ class _CollapseChip extends StatelessWidget {
           child: Icon(
             arrowDown ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
             size: 22,
-            color: Colors.grey.shade700,
+            color: colors.textMutedDark,
           ),
         ),
       ),

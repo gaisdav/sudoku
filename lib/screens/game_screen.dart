@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudoku_dart/sudoku_dart.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../config/app_colors.dart';
 import '../providers/game_provider.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/rewarded_ad_service.dart';
@@ -142,8 +143,6 @@ class _GameScreenState extends ConsumerState<GameScreen>
   }
 }
 
-const _blue = Color(0xFF2196F3);
-
 /// Ширина экрана, при которой кнопки Undo/Notes/Hint в «компактном» размере.
 const _kActionCompactWidth = 360.0;
 /// Ширина экрана, при которой кнопки достигают максимального размера (планшеты).
@@ -271,9 +270,10 @@ class _GameScreenBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(gameProvider);
     final notifier = ref.read(gameProvider.notifier);
+    final colors = context.appColors;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: colors.background,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -333,50 +333,50 @@ class _GameScreenBody extends ConsumerWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colors.surface,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: colors.border),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           formatDuration(state.elapsedSeconds),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w600,
-                            fontFeatures: [FontFeature.tabularFigures()],
-                            color: _blue,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                            color: colors.primary,
                           ),
                         ),
                         const SizedBox(width: 6),
                         Icon(Icons.access_time,
-                            size: 18, color: Colors.grey.shade600),
+                            size: 18, color: colors.textMuted),
                       ],
                     ),
                   ),
                   const SizedBox(width: 16),
-                  Icon(Icons.bar_chart, size: 20, color: Colors.grey.shade700),
+                  Icon(Icons.bar_chart, size: 20, color: colors.textMutedDark),
                   const SizedBox(width: 6),
                   Text(
                     _difficultyName(state.difficulty),
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey.shade800,
+                      color: colors.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   if (state.difficulty != Level.expert) ...[
                     const Spacer(),
                     Icon(Icons.warning_amber_rounded,
-                        size: 20, color: Colors.grey.shade700),
+                        size: 20, color: colors.textMutedDark),
                     const SizedBox(width: 6),
                     Text(
                       '${state.errorsMade} / ${state.maxErrors}',
                       style: TextStyle(
                         fontSize: 14,
                         color: state.errorsMade >= state.maxErrors
-                            ? Colors.red.shade700
-                            : Colors.grey.shade800,
+                            ? colors.errorDark
+                            : colors.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -388,9 +388,9 @@ class _GameScreenBody extends ConsumerWidget {
             Expanded(
               child: Column(
                 children: [
-                  Expanded(
+                  const Expanded(
                     flex: 2,
-                    child: const SudokuGrid(),
+                    child: SudokuGrid(),
                   ),
                   Expanded(
                     flex: 1,
@@ -630,6 +630,7 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
     final enabled = onPressed != null;
     final active = isActive && enabled;
     final t = actionScale.clamp(0.0, 1.0);
@@ -641,7 +642,7 @@ class _ActionButton extends StatelessWidget {
     final gap = 4.0 + t * 4.0;     // 4 .. 8
     final labelGap = 6.0 + t * 6.0; // 6 .. 12
     return Material(
-      color: active ? _blue.withValues(alpha: 0.15) : Colors.white,
+      color: active ? colors.primary.withValues(alpha: 0.15) : colors.surface,
       borderRadius: BorderRadius.circular(radius),
       child: InkWell(
         onTap: onPressed,
@@ -651,7 +652,7 @@ class _ActionButton extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(radius),
             border: Border.all(
-              color: active ? _blue : Colors.grey.shade300,
+              color: active ? colors.primary : colors.border,
               width: 1,
             ),
           ),
@@ -661,7 +662,7 @@ class _ActionButton extends StatelessWidget {
               Icon(
                 icon,
                 size: iconSize,
-                color: active ? _blue : (enabled ? _blue : Colors.grey.shade400),
+                color: active ? colors.primary : (enabled ? colors.primary : colors.disabled),
               ),
               if (badge != null) ...[
                 SizedBox(width: gap),
@@ -669,7 +670,7 @@ class _ActionButton extends StatelessWidget {
                   badge!,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: active ? _blue : (enabled ? _blue : Colors.grey.shade400),
+                    color: active ? colors.primary : (enabled ? colors.primary : colors.disabled),
                     fontSize: fontSize,
                   ),
                 ),
@@ -680,7 +681,7 @@ class _ActionButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: fontSize,
                   fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                  color: active ? _blue : (enabled ? Colors.grey.shade800 : Colors.grey.shade400),
+                  color: active ? colors.primary : (enabled ? colors.textSecondary : colors.disabled),
                 ),
               ),
             ],
