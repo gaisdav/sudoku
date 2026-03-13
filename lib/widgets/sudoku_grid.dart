@@ -30,11 +30,14 @@ class SudokuGrid extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        const padding = 12.0;
-        final availableWidth = (constraints.maxWidth - padding).clamp(0.0, double.infinity);
-        final availableHeight = constraints.maxHeight.clamp(0.0, double.infinity);
+        const padding = 6.0;
+        final availableWidth =
+            (constraints.maxWidth - padding).clamp(0.0, double.infinity);
+        final availableHeight =
+            constraints.maxHeight.clamp(0.0, double.infinity);
         final available = min(availableWidth, availableHeight);
-        final gridSide = (available * _kGridSpaceFraction).clamp(_kMinGridSide, _kMaxGridSide);
+        final gridSide = (available * _kGridSpaceFraction)
+            .clamp(_kMinGridSide, _kMaxGridSide);
         // 9 cells, 6 inner spacings (2 per block row), 2 block gaps: 9*cell + 6*_cellSpacing + 2*_blockGap = gridSide
         final cellSize = (gridSide - 6 * _cellSpacing - 2 * _blockGap) / 9;
 
@@ -59,7 +62,9 @@ class SudokuGrid extends ConsumerWidget {
                           state: state,
                           selectedRow: selectedRow,
                           selectedCol: selectedCol,
-                          onSelectCell: (index) => ref.read(gameProvider.notifier).selectCell(
+                          onSelectCell: (index) => ref
+                              .read(gameProvider.notifier)
+                              .selectCell(
                                 state.selectedCellIndex == index ? null : index,
                               ),
                         ),
@@ -133,16 +138,17 @@ class _BlockGrid extends StatelessWidget {
         ((selectedRow != null && row == selectedRow) ||
             (selectedCol != null && col == selectedCol) ||
             isSameBlock);
-    final isInCompleteRegion = (state.difficulty == Level.easy ||
-            state.difficulty == Level.medium) &&
-        (state.isRowComplete(row) ||
-            state.isColComplete(col) ||
-            state.isBlockComplete(blockRow, blockCol));
+    final isInCompleteRegion =
+        (state.difficulty == Level.easy || state.difficulty == Level.medium) &&
+            (state.isRowComplete(row) ||
+                state.isColComplete(col) ||
+                state.isBlockComplete(blockRow, blockCol));
     final justCompleted = state.justCompletedRegionIds;
     final isJustCompleted = justCompleted.contains('r:$row') ||
         justCompleted.contains('c:$col') ||
         justCompleted.contains('b:$blockRow:$blockCol');
-    final cellNotes = state.cellNotes.length > index ? state.cellNotes[index] : <int>{};
+    final cellNotes =
+        state.cellNotes.length > index ? state.cellNotes[index] : <int>{};
     // Hard/Expert: hide error highlight in Notes mode to make it harder.
     final showWrongHighlight = !(state.isNotesMode &&
         (state.difficulty == Level.hard || state.difficulty == Level.expert));

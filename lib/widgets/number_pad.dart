@@ -10,8 +10,8 @@ import '../config/app_colors.dart';
 import '../providers/game_provider.dart';
 
 /// Min/max side of each number-pad button so it scales on small and large screens (like the grid).
-const _kMinButtonSize = 40.0;
-const _kMaxButtonSize = 76.0;
+const _kMinButtonSize = 34.0;
+const _kMaxButtonSize = 58.0;
 
 class NumberPad extends ConsumerWidget {
   const NumberPad({super.key});
@@ -49,7 +49,7 @@ class NumberPad extends ConsumerWidget {
 
         final colors = context.appColors;
         return Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
           color: colors.background,
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -167,15 +167,15 @@ class _NumButton extends StatelessWidget {
             label!,
             style: TextStyle(
               fontSize: fontSize,
-              fontWeight: FontWeight.w500,
-              color: enabled ? colors.primary : colors.disabled,
+              fontWeight: FontWeight.w600,
+              color: enabled ? colors.textPrimary : colors.disabled,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           )
         : Icon(
             icon,
             size: iconSize,
-            color: enabled ? colors.primary : colors.disabled,
+            color: enabled ? colors.textPrimary : colors.disabled,
           );
 
     final borderRadius = (size * 0.23).clamp(8.0, 16.0);
@@ -209,7 +209,7 @@ class _NumButton extends StatelessWidget {
                         style: TextStyle(
                           fontSize: (size * 0.21).clamp(9.0, 14.0),
                           fontWeight: FontWeight.w600,
-                          color: colors.textMuted,
+                          color: colors.textSecondary,
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),

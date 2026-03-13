@@ -5,7 +5,8 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../config/app_colors.dart';
 import '../providers/game_provider.dart';
-import '../utils/vibration_helper.dart' show hapticLightImpact, hapticSelection, vibrateOnGameOver;
+import '../utils/vibration_helper.dart'
+    show hapticLightImpact, hapticSelection, vibrateOnGameOver;
 import '../providers/theme_mode_provider.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/rewarded_ad_service.dart';
@@ -85,68 +86,69 @@ class _GameScreenState extends ConsumerState<GameScreen>
           barrierDismissible: false,
           builder: (ctx) {
             final prevBest = next.previousBestTimeForLevel;
-            final isNewRecord = prevBest == null || next.elapsedSeconds <= prevBest;
+            final isNewRecord =
+                prevBest == null || next.elapsedSeconds <= prevBest;
             final recordText = isNewRecord
                 ? 'New record!'
                 : '${formatDuration(next.elapsedSeconds - prevBest)} slower than your best';
             return AlertDialog(
-            title: const Text('You won!'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Congratulations, you completed the puzzle.'),
-                const SizedBox(height: 8),
-                Text(
-                  'Time: ${formatDuration(next.elapsedSeconds)}',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Hints used: ${next.hintsUsedThisGame}',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  recordText,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: isNewRecord
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.onSurface,
+              title: const Text('You won!'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Congratulations, you completed the puzzle.'),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Time: ${formatDuration(next.elapsedSeconds)}',
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Hints used: ${next.hintsUsedThisGame}',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    recordText,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: isNewRecord
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurface,
+                        ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    InterstitialAdService.tryShowInterstitial(
+                      context,
+                      InterstitialTrigger.backToMenu,
+                      onDone: () {
+                        Navigator.of(ctx).pop();
+                        Navigator.of(context).pop();
+                      },
+                    );
+                  },
+                  child: const Text('Back to menu'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    InterstitialAdService.tryShowInterstitial(
+                      context,
+                      InterstitialTrigger.restartYouWon,
+                      onDone: () {
+                        Navigator.of(ctx).pop();
+                        ref.read(gameProvider.notifier).newGame();
+                      },
+                    );
+                  },
+                  child: const Text('New game'),
                 ),
               ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  InterstitialAdService.tryShowInterstitial(
-                    context,
-                    InterstitialTrigger.backToMenu,
-                    onDone: () {
-                      Navigator.of(ctx).pop();
-                      Navigator.of(context).pop();
-                    },
-                  );
-                },
-                child: const Text('Back to menu'),
-              ),
-              TextButton(
-                onPressed: () {
-                  InterstitialAdService.tryShowInterstitial(
-                    context,
-                    InterstitialTrigger.restartYouWon,
-                    onDone: () {
-                      Navigator.of(ctx).pop();
-                      ref.read(gameProvider.notifier).newGame();
-                    },
-                  );
-                },
-                child: const Text('New game'),
-              ),
-            ],
-          );
+            );
           },
         );
       }
@@ -166,6 +168,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
 /// Ширина экрана, при которой кнопки Undo/Notes/Hint в «компактном» размере.
 const _kActionCompactWidth = 360.0;
+
 /// Ширина экрана, при которой кнопки достигают максимального размера (планшеты).
 const _kActionLargeWidth = 640.0;
 
@@ -192,8 +195,8 @@ class _LoadingAdDialog extends StatelessWidget {
             child: Text(
               message ?? 'Loading ad…',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
           ),
         ],
@@ -242,7 +245,8 @@ void _showNoErrorsModeDialog(BuildContext context, WidgetRef ref) {
 }
 
 /// Show ad at [adIndex] (0, 1, 2); after the third, enable no-errors mode and resume timer.
-void _watchAdsForNoErrorsMode(BuildContext context, WidgetRef ref, int adIndex) {
+void _watchAdsForNoErrorsMode(
+    BuildContext context, WidgetRef ref, int adIndex) {
   final notifier = ref.read(gameProvider.notifier);
   if (adIndex >= 3) {
     notifier.setNoErrorsModeThisSession(true);
@@ -275,8 +279,7 @@ void _watchAdsForNoErrorsMode(BuildContext context, WidgetRef ref, int adIndex) 
   );
 }
 
-void showGameOverDialog(
-    BuildContext context, WidgetRef ref, Level difficulty) {
+void showGameOverDialog(BuildContext context, WidgetRef ref, Level difficulty) {
   showDialog<void>(
     context: context,
     barrierDismissible: false,
@@ -449,7 +452,9 @@ class _GameScreenBody extends ConsumerWidget {
                           ),
                           tooltip: 'Light theme',
                           onPressed: () {
-                            ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.light);
+                            ref
+                                .read(themeModeProvider.notifier)
+                                .setThemeMode(ThemeMode.light);
                             Navigator.pop(context);
                           },
                         ),
@@ -462,7 +467,9 @@ class _GameScreenBody extends ConsumerWidget {
                           ),
                           tooltip: 'Dark theme',
                           onPressed: () {
-                            ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark);
+                            ref
+                                .read(themeModeProvider.notifier)
+                                .setThemeMode(ThemeMode.dark);
                             Navigator.pop(context);
                           },
                         ),
@@ -475,7 +482,9 @@ class _GameScreenBody extends ConsumerWidget {
                           ),
                           tooltip: 'Follow system',
                           onPressed: () {
-                            ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.system);
+                            ref
+                                .read(themeModeProvider.notifier)
+                                .setThemeMode(ThemeMode.system);
                             Navigator.pop(context);
                           },
                         ),
@@ -578,16 +587,18 @@ class _GameScreenBody extends ConsumerWidget {
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         final w = constraints.maxWidth;
-                        final scale = ((w - _kActionCompactWidth) / (_kActionLargeWidth - _kActionCompactWidth))
+                        final scale = ((w - _kActionCompactWidth) /
+                                (_kActionLargeWidth - _kActionCompactWidth))
                             .clamp(0.0, 1.0);
-                        final outerH = 8.0 + scale * 8.0; // 8 .. 16
-                        final gap = 8.0 + scale * 8.0;   // 8 .. 16
+                        final outerH = 6.0 + scale * 6.0; // 6 .. 12
+                        final gap = 6.0 + scale * 6.0; // 6 .. 12
                         return Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: outerH, vertical: 8),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: outerH, vertical: 4),
                                 child: Wrap(
                                   alignment: WrapAlignment.center,
                                   spacing: gap,
@@ -599,7 +610,8 @@ class _GameScreenBody extends ConsumerWidget {
                                       badge: _undoBadge(state),
                                       actionScale: scale,
                                       onPressed: _undoEnabled(state)
-                                          ? () => _onUndoTap(context, ref, state)
+                                          ? () =>
+                                              _onUndoTap(context, ref, state)
                                           : null,
                                     ),
                                     _ActionButton(
@@ -612,7 +624,8 @@ class _GameScreenBody extends ConsumerWidget {
                                           : () {
                                               hapticSelection();
                                               notifier.onAppPaused();
-                                              InterstitialAdService.tryShowInterstitial(
+                                              InterstitialAdService
+                                                  .tryShowInterstitial(
                                                 context,
                                                 InterstitialTrigger.notes,
                                                 onDone: () {
@@ -625,37 +638,51 @@ class _GameScreenBody extends ConsumerWidget {
                                     _ActionButton(
                                       icon: Icons.lightbulb_outline,
                                       label: 'Hint',
-                                      badge: state.freeHintsLeft > 0 ? '${state.freeHintsLeft}' : 'Ad',
+                                      badge: state.freeHintsLeft > 0
+                                          ? '${state.freeHintsLeft}'
+                                          : 'Ad',
                                       actionScale: scale,
                                       onPressed: state.isWon
                                           ? null
                                           : () async {
                                               hapticLightImpact();
-                                              final applied = notifier.applyHint();
+                                              final applied =
+                                                  notifier.applyHint();
                                               if (!applied) {
                                                 if (!context.mounted) return;
                                                 notifier.onAppPaused();
                                                 showDialog<void>(
                                                   context: context,
                                                   barrierDismissible: false,
-                                                  builder: (_) => const _LoadingAdDialog(),
+                                                  builder: (_) =>
+                                                      const _LoadingAdDialog(),
                                                 );
                                                 showRewardedAd(
                                                   context,
                                                   onAdReadyToShow: () {
-                                                    if (context.mounted) Navigator.of(context).pop();
+                                                    if (context.mounted)
+                                                      Navigator.of(context)
+                                                          .pop();
                                                   },
-                                                  onRewarded: () => notifier.applyHintFromAd(),
-                                                  onDismissed: () => notifier.onAppResumed(),
+                                                  onRewarded: () => notifier
+                                                      .applyHintFromAd(),
+                                                  onDismissed: () =>
+                                                      notifier.onAppResumed(),
                                                   onNotAvailable: () {
                                                     if (context.mounted) {
-                                                      Navigator.of(context).pop();
-                                                      notifier.applyHintFromAd();
+                                                      Navigator.of(context)
+                                                          .pop();
+                                                      notifier
+                                                          .applyHintFromAd();
                                                       notifier.onAppResumed();
-                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                      ScaffoldMessenger.of(
+                                                              context)
+                                                          .showSnackBar(
                                                         const SnackBar(
-                                                          content: Text('Ad not available. Hint applied.'),
-                                                          duration: Duration(seconds: 2),
+                                                          content: Text(
+                                                              'Ad not available. Hint applied.'),
+                                                          duration: Duration(
+                                                              seconds: 2),
                                                         ),
                                                       );
                                                     }
@@ -804,6 +831,7 @@ class _ActionButton extends StatelessWidget {
   final String label;
   final String? badge;
   final bool isActive;
+
   /// 0 = компактный размер (узкий экран), 1 = крупный (планшет). Масштабирование отступов и шрифтов.
   final double actionScale;
 
@@ -815,12 +843,12 @@ class _ActionButton extends StatelessWidget {
     final enabled = onPressed != null;
     final active = isActive && enabled;
     final t = actionScale.clamp(0.0, 1.0);
-    final hPad = 12.0 + t * 12.0;   // 12 .. 24
-    final vPad = 8.0 + t * 6.0;    // 8 .. 14
-    final radius = 8.0 + t * 8.0;  // 8 .. 16
-    final iconSize = 18.0 + t * 12.0;  // 18 .. 30
-    final fontSize = 12.0 + t * 6.0;  // 12 .. 18
-    final gap = 4.0 + t * 4.0;     // 4 .. 8
+    final hPad = 12.0 + t * 12.0; // 12 .. 24
+    final vPad = 8.0 + t * 6.0; // 8 .. 14
+    final radius = 8.0 + t * 8.0; // 8 .. 16
+    final iconSize = 18.0 + t * 12.0; // 18 .. 30
+    final fontSize = 12.0 + t * 6.0; // 12 .. 18
+    final gap = 4.0 + t * 4.0; // 4 .. 8
     final labelGap = 6.0 + t * 6.0; // 6 .. 12
     return Material(
       color: active ? colors.primary.withValues(alpha: 0.15) : colors.surface,
@@ -843,7 +871,9 @@ class _ActionButton extends StatelessWidget {
               Icon(
                 icon,
                 size: iconSize,
-                color: active ? colors.primary : (enabled ? colors.primary : colors.disabled),
+                color: active
+                    ? colors.primary
+                    : (enabled ? colors.primary : colors.disabled),
               ),
               if (badge != null) ...[
                 SizedBox(width: gap),
@@ -851,7 +881,9 @@ class _ActionButton extends StatelessWidget {
                   badge!,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: active ? colors.primary : (enabled ? colors.primary : colors.disabled),
+                    color: active
+                        ? colors.primary
+                        : (enabled ? colors.primary : colors.disabled),
                     fontSize: fontSize,
                   ),
                 ),
@@ -862,7 +894,9 @@ class _ActionButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: fontSize,
                   fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                  color: active ? colors.primary : (enabled ? colors.textSecondary : colors.disabled),
+                  color: active
+                      ? colors.primary
+                      : (enabled ? colors.textSecondary : colors.disabled),
                 ),
               ),
             ],

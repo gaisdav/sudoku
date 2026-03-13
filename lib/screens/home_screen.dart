@@ -172,10 +172,15 @@ class _SettingsSection extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         SegmentedButton<ThemeMode>(
+          style: SegmentedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            textStyle: Theme.of(context).textTheme.labelSmall,
+            visualDensity: VisualDensity.compact,
+          ),
           segments: const [
-            ButtonSegment(value: ThemeMode.light, label: Text('Light'), icon: Icon(Icons.light_mode, size: 18)),
-            ButtonSegment(value: ThemeMode.dark, label: Text('Dark'), icon: Icon(Icons.dark_mode, size: 18)),
-            ButtonSegment(value: ThemeMode.system, label: Text('System'), icon: Icon(Icons.brightness_auto, size: 18)),
+            ButtonSegment(value: ThemeMode.light, label: Text('Light'), icon: Icon(Icons.light_mode, size: 16)),
+            ButtonSegment(value: ThemeMode.dark, label: Text('Dark'), icon: Icon(Icons.dark_mode, size: 16)),
+            ButtonSegment(value: ThemeMode.system, label: Text('System'), icon: Icon(Icons.brightness_auto, size: 16)),
           ],
           selected: {themeMode},
           onSelectionChanged: (Set<ThemeMode> selected) {
@@ -190,35 +195,49 @@ class _SettingsSection extends ConsumerWidget {
               ),
         ),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 10,
-          runSpacing: 8,
-          children: List.generate(accentColorOptions.length, (i) {
-            final selected = i == accentIndex;
-            return GestureDetector(
-              onTap: () => notifierAccent.setAccentIndex(i),
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: accentColorOptions[i],
-                  border: Border.all(
-                    color: selected ? Theme.of(context).colorScheme.primary : Colors.transparent,
-                    width: 3,
-                  ),
-                  boxShadow: [
-                    if (selected)
-                      BoxShadow(
-                        color: accentColorOptions[i].withValues(alpha: 0.5),
-                        blurRadius: 6,
-                        spreadRadius: 1,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const count = 6;
+            const minSize = 24.0;
+            const maxSize = 36.0;
+            const minGap = 4.0;
+            const maxGap = 10.0;
+            final width = constraints.maxWidth;
+            final size = ((width - (count - 1) * minGap) / count).clamp(minSize, maxSize);
+            final gap = width > count * maxSize + (count - 1) * maxGap
+                ? maxGap
+                : ((width - count * size) / (count - 1)).clamp(minGap, maxGap);
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(accentColorOptions.length, (i) {
+                final selected = i == accentIndex;
+                return GestureDetector(
+                  onTap: () => notifierAccent.setAccentIndex(i),
+                  child: Container(
+                    width: size,
+                    height: size,
+                    margin: EdgeInsets.only(right: i < accentColorOptions.length - 1 ? gap : 0),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: accentColorOptions[i],
+                      border: Border.all(
+                        color: selected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                        width: 3,
                       ),
-                  ],
-                ),
-              ),
+                      boxShadow: [
+                        if (selected)
+                          BoxShadow(
+                            color: accentColorOptions[i].withValues(alpha: 0.5),
+                            blurRadius: 6,
+                            spreadRadius: 1,
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
             );
-          }),
+          },
         ),
         const SizedBox(height: 16),
         SwitchListTile(
