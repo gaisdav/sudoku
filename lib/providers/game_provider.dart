@@ -7,6 +7,7 @@ import 'package:sudoku_dart/sudoku_dart.dart';
 
 import '../models/sudoku_cell.dart';
 import '../services/game_storage.dart';
+import '../utils/vibration_helper.dart';
 
 const _omit = Object();
 
@@ -575,6 +576,7 @@ class GameNotifier extends StateNotifier<GameState> {
     _revalidateWrong();
     if (state.cells[idx].isWrong) {
       state = state.copyWith(errorsMade: state.errorsMade + 1);
+      vibrateOnError();
     }
     final newComplete = _completeRegionIds(state);
     final justCompleted = newComplete.difference(previousComplete);

@@ -6,6 +6,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../config/app_colors.dart';
 import '../providers/game_provider.dart';
+import '../utils/vibration_helper.dart';
 import '../providers/theme_mode_provider.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/rewarded_ad_service.dart';
@@ -136,6 +137,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
       if (next.errorsMade > next.maxErrors && !next.gameOverDialogShown) {
         ref.read(gameProvider.notifier).markGameOverDialogShown();
         ref.read(gameProvider.notifier).pauseTimer();
+        vibrateOnGameOver();
         showGameOverDialog(context, ref, next.difficulty);
       }
     });
@@ -314,34 +316,49 @@ class _GameScreenBody extends ConsumerWidget {
                   if (context.mounted) notifier.onAppResumed();
                 });
               }
+              if (value == 'theme_light') ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.light);
+              if (value == 'theme_dark') ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark);
+              if (value == 'theme_system') ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.system);
             },
             itemBuilder: (context) {
+              final themeMode = ref.watch(themeModeProvider);
               return [
                 const PopupMenuItem(value: 'new', child: Text('New game')),
                 const PopupMenuItem(value: 'stats', child: Text('Statistics')),
                 PopupMenuItem<String>(
-                  value: 'theme',
-                  enabled: false,
-                  child: Consumer(
-                    builder: (context, ref, _) {
-                      final themeMode = ref.watch(themeModeProvider);
-                      final isDark = themeMode == ThemeMode.dark;
-                      return Row(
-                        children: [
-                          Text(
-                            'Dark theme',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                          const Spacer(),
-                          Switch(
-                            value: isDark,
-                            onChanged: (_) {
-                              ref.read(themeModeProvider.notifier).toggle();
-                            },
-                          ),
-                        ],
-                      );
-                    },
+                  value: 'theme_light',
+                  child: Row(
+                    children: [
+                      const Text('Light theme'),
+                      if (themeMode == ThemeMode.light) ...[
+                        const Spacer(),
+                        const Icon(Icons.check, size: 20),
+                      ],
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'theme_dark',
+                  child: Row(
+                    children: [
+                      const Text('Dark theme'),
+                      if (themeMode == ThemeMode.dark) ...[
+                        const Spacer(),
+                        const Icon(Icons.check, size: 20),
+                      ],
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'theme_system',
+                  child: Row(
+                    children: [
+                      const Text('Follow system'),
+                      if (themeMode == ThemeMode.system) ...[
+                        const Spacer(),
+                        const Icon(Icons.check, size: 20),
+                      ],
+                    ],
                   ),
                 ),
               ];

@@ -119,17 +119,34 @@ class GameStorage {
 
   static const String valueThemeDark = 'dark';
   static const String valueThemeLight = 'light';
+  static const String valueThemeSystem = 'system';
 
-  /// Saves theme mode. [value] must be [valueThemeDark] or [valueThemeLight].
+  /// Saves theme mode. [value] must be [valueThemeDark], [valueThemeLight] or [valueThemeSystem].
   static Future<void> saveThemeMode(String value) async {
     await box.put(_keyThemeMode, value);
   }
 
-  /// Returns saved theme: [valueThemeDark] or [valueThemeLight]. Default: [valueThemeDark].
+  /// Returns saved theme. Default: [valueThemeDark].
   static String loadThemeMode() {
     final raw = box.get(_keyThemeMode);
     if (raw == null) return valueThemeDark;
     final s = raw.toString();
-    return s == valueThemeLight ? valueThemeLight : valueThemeDark;
+    if (s == valueThemeLight) return valueThemeLight;
+    if (s == valueThemeSystem) return valueThemeSystem;
+    return valueThemeDark;
+  }
+
+  static const _keyAccentIndex = 'accent_index';
+
+  /// Saves accent color index (0-based). Default 0 = blue.
+  static Future<void> saveAccentIndex(int index) async {
+    await box.put(_keyAccentIndex, index);
+  }
+
+  /// Returns saved accent index. Default 0.
+  static int loadAccentIndex() {
+    final raw = box.get(_keyAccentIndex);
+    if (raw == null) return 0;
+    return (raw is num) ? raw.toInt().clamp(0, 99) : 0;
   }
 }

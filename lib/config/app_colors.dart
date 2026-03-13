@@ -106,7 +106,7 @@ class AppColors extends ThemeExtension<AppColors> {
     conflictFlashBackground: Color(0xFFFFEBEE),
   );
 
-  /// Тёмная тема — заглушка на будущее (при переключении на darkTheme подставится автоматически).
+  /// Тёмная тема.
   static const AppColors dark = AppColors(
     primary: Color(0xFF2196F3),
     primaryLight: Color(0xFF1E3A5F),
@@ -128,6 +128,56 @@ class AppColors extends ThemeExtension<AppColors> {
     conflictFlashBorder: Color(0xFFEF5350),
     conflictFlashBackground: Color(0xFF4A2C2C),
   );
+
+  /// Светлая тема с заданным акцентным цветом. [primaryLight] — светлый оттенок для выделения.
+  static AppColors lightWithAccent(Color primary, [Color? primaryLight]) {
+    return AppColors(
+      primary: primary,
+      primaryLight: primaryLight ?? Color.lerp(primary, const Color(0xFFFFFFFF), 0.92)!,
+      surface: light.surface,
+      background: light.background,
+      textPrimary: light.textPrimary,
+      textSecondary: light.textSecondary,
+      textMuted: light.textMuted,
+      textMutedDark: light.textMutedDark,
+      border: light.border,
+      borderSubtle: light.borderSubtle,
+      disabled: light.disabled,
+      error: light.error,
+      errorLight: light.errorLight,
+      errorDark: light.errorDark,
+      successLight: light.successLight,
+      cellRegionComplete: light.cellRegionComplete,
+      chipBackground: light.chipBackground,
+      conflictFlashBorder: light.conflictFlashBorder,
+      conflictFlashBackground: light.conflictFlashBackground,
+    );
+  }
+
+  /// Тёмная тема с заданным акцентным цветом.
+  static AppColors darkWithAccent(Color primary, [Color? primaryLight]) {
+    return AppColors(
+      primary: primary,
+      primaryLight: primaryLight ?? Color.lerp(primary, const Color(0xFF000000), 0.75)!,
+      surface: dark.surface,
+      background: dark.background,
+      textPrimary: dark.textPrimary,
+      textSecondary: dark.textSecondary,
+      textMuted: dark.textMuted,
+      textMutedDark: dark.textMutedDark,
+      border: dark.border,
+      borderSubtle: dark.borderSubtle,
+      disabled: dark.disabled,
+      error: dark.error,
+      errorLight: dark.errorLight,
+      errorDark: dark.errorDark,
+      successLight: dark.successLight,
+      cellRegionComplete: dark.cellRegionComplete,
+      chipBackground: dark.chipBackground,
+      conflictFlashBorder: dark.conflictFlashBorder,
+      conflictFlashBackground: dark.conflictFlashBackground,
+    );
+  }
 
   @override
   ThemeExtension<AppColors> copyWith({

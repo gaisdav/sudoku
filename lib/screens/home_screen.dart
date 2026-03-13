@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudoku_dart/sudoku_dart.dart';
 
+import '../providers/accent_color_provider.dart';
 import '../providers/theme_mode_provider.dart';
 import '../services/game_storage.dart';
 import '../services/interstitial_ad_service.dart';
@@ -131,9 +132,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             // Settings
             _SectionCard(
               title: 'Settings',
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: _ThemeSwitch(),
+              child: const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: _SettingsSection(),
               ),
             ),
                 ],
@@ -150,19 +151,75 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 const List<String> _levelLabels = ['Easy', 'Medium', 'Hard', 'Expert'];
 
-class _ThemeSwitch extends ConsumerWidget {
-  const _ThemeSwitch();
+class _SettingsSection extends ConsumerWidget {
+  const _SettingsSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
-    final isDark = themeMode == ThemeMode.dark;
-    return SwitchListTile(
-      title: const Text('Dark theme'),
-      value: isDark,
-      onChanged: (_) {
-        ref.read(themeModeProvider.notifier).toggle();
-      },
+    final accentIndex = ref.watch(accentIndexProvider);
+    final notifierTheme = ref.read(themeModeProvider.notifier);
+    final notifierAccent = ref.read(accentIndexProvider.notifier);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Theme',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
+        const SizedBox(height: 8),
+        SegmentedButton<ThemeMode>(
+          segments: const [
+            ButtonSegment(value: ThemeMode.light, label: Text('Light'), icon: Icon(Icons.light_mode, size: 18)),
+            ButtonSegment(value: ThemeMode.dark, label: Text('Dark'), icon: Icon(Icons.dark_mode, size: 18)),
+            ButtonSegment(value: ThemeMode.system, label: Text('System'), icon: Icon(Icons.brightness_auto, size: 18)),
+          ],
+          selected: {themeMode},
+          onSelectionChanged: (Set<ThemeMode> selected) {
+            notifierTheme.setThemeMode(selected.first);
+          },
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Accent color',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 10,
+          runSpacing: 8,
+          children: List.generate(accentColorOptions.length, (i) {
+            final selected = i == accentIndex;
+            return GestureDetector(
+              onTap: () => notifierAccent.setAccentIndex(i),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accentColorOptions[i],
+                  border: Border.all(
+                    color: selected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                    width: 3,
+                  ),
+                  boxShadow: [
+                    if (selected)
+                      BoxShadow(
+                        color: accentColorOptions[i].withValues(alpha: 0.5),
+                        blurRadius: 6,
+                        spreadRadius: 1,
+                      ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 }

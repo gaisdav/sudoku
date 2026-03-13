@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -166,6 +168,7 @@ class _NumButton extends StatelessWidget {
               fontSize: fontSize,
               fontWeight: FontWeight.w500,
               color: enabled ? colors.primary : colors.disabled,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           )
         : Icon(
@@ -206,6 +209,7 @@ class _NumButton extends StatelessWidget {
                           fontSize: (size * 0.21).clamp(9.0, 14.0),
                           fontWeight: FontWeight.w600,
                           color: colors.textMuted,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                     ),

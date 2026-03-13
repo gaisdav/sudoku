@@ -15,6 +15,7 @@ dependencies:
   sudoku_dart: ^1.2.0
   hive_flutter: ^1.1.0
   wakelock_plus: ^1.2.8
+  vibration: ^3.1.3
 
 dev_dependencies:
   flutter_test:

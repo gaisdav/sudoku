@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'config/app_colors.dart';
+import 'providers/accent_color_provider.dart';
 import 'providers/theme_mode_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/app_open_ad_service.dart';
@@ -72,14 +73,18 @@ class _SudokuAppState extends ConsumerState<SudokuApp> with WidgetsBindingObserv
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
+    final accentIndex = ref.watch(accentIndexProvider).clamp(0, accentColorOptions.length - 1);
+    final accentColor = accentColorOptions[accentIndex];
+    final lightColors = AppColors.lightWithAccent(accentColor);
+    final darkColors = AppColors.darkWithAccent(accentColor);
     return MaterialApp(
       title: 'Sudoku',
       themeMode: themeMode,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.light.primary,
+          seedColor: accentColor,
           brightness: Brightness.light,
-          primary: AppColors.light.primary,
+          primary: accentColor,
         ),
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
@@ -87,13 +92,13 @@ class _SudokuAppState extends ConsumerState<SudokuApp> with WidgetsBindingObserv
           elevation: 0,
           scrolledUnderElevation: 0,
         ),
-        extensions: const [AppColors.light],
+        extensions: [lightColors],
       ),
       darkTheme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.dark.primary,
+          seedColor: accentColor,
           brightness: Brightness.dark,
-          primary: AppColors.dark.primary,
+          primary: accentColor,
         ),
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
@@ -101,7 +106,7 @@ class _SudokuAppState extends ConsumerState<SudokuApp> with WidgetsBindingObserv
           elevation: 0,
           scrolledUnderElevation: 0,
         ),
-        extensions: const [AppColors.dark],
+        extensions: [darkColors],
       ),
       home: const HomeScreen(),
     );

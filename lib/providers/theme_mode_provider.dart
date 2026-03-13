@@ -12,17 +12,18 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
   @override
   ThemeMode build() {
     final saved = GameStorage.loadThemeMode();
-    return saved == GameStorage.valueThemeLight ? ThemeMode.light : ThemeMode.dark;
+    if (saved == GameStorage.valueThemeLight) return ThemeMode.light;
+    if (saved == GameStorage.valueThemeSystem) return ThemeMode.system;
+    return ThemeMode.dark;
   }
 
   void setThemeMode(ThemeMode mode) {
     state = mode;
-    GameStorage.saveThemeMode(
-      mode == ThemeMode.light ? GameStorage.valueThemeLight : GameStorage.valueThemeDark,
-    );
-  }
-
-  void toggle() {
-    setThemeMode(state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark);
+    final value = mode == ThemeMode.light
+        ? GameStorage.valueThemeLight
+        : mode == ThemeMode.system
+            ? GameStorage.valueThemeSystem
+            : GameStorage.valueThemeDark;
+    GameStorage.saveThemeMode(value);
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -80,6 +82,7 @@ class SudokuCellWidget extends StatelessWidget {
             fontSize: fontSize,
             fontWeight: cell.isOriginal ? FontWeight.w600 : FontWeight.normal,
             color: textColor,
+            fontFeatures: const [FontFeature.tabularFigures()],
           );
           return AnimatedContainer(
             duration: Duration(
@@ -151,6 +154,7 @@ class _NotesGrid extends StatelessWidget {
                       fontSize: fontSize,
                       color: colors.textMutedDark,
                       fontWeight: FontWeight.w500,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ),
