@@ -50,6 +50,11 @@ class AppOpenAdService {
     }
   }
 
+  /// Выполнить [action] после инициализации AdMob (для предзагрузки interstitial/rewarded).
+  static void runWhenAdsReady(void Function() action) {
+    _whenAdsReady(action);
+  }
+
   /// Вызывать при первом кадре после запуска приложения (cold start).
   static void maybeShowColdStart() {
     final adUnitId = appOpenAdUnitId;
