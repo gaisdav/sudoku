@@ -49,95 +49,91 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 children: [
-            // Continue last game
-            _SectionCard(
-              title: 'Continue last game',
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: _ContinueRow(
-                  hasSavedGame: hasSavedGame,
-                  onContinue: () {
-                    InterstitialAdService.tryShowInterstitial(
-                      context,
-                      InterstitialTrigger.continueGame,
-                      onDone: () {
-                        if (!context.mounted) return;
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const GameScreen(continueLast: true),
-                          ),
-                        ).then((_) {
-                          if (mounted) setState(() {});
-                        });
-                      },
-                    );
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // New game
-            _SectionCard(
-              title: 'Start new game',
-              child: Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _DifficultyChip(
-                      label: 'Easy',
-                      onTap: () => _openNewGameAndRefreshOnReturn(Level.easy),
+                  _SectionBlock(
+                    title: 'Game',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _ContinueRow(
+                          hasSavedGame: hasSavedGame,
+                          onContinue: () {
+                            InterstitialAdService.tryShowInterstitial(
+                              context,
+                              InterstitialTrigger.continueGame,
+                              onDone: () {
+                                if (!context.mounted) return;
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const GameScreen(continueLast: true),
+                                  ),
+                                ).then((_) {
+                                  if (mounted) setState(() {});
+                                });
+                              },
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'New game',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            _DifficultyChip(
+                              label: 'Easy',
+                              onTap: () => _openNewGameAndRefreshOnReturn(Level.easy),
+                            ),
+                            _DifficultyChip(
+                              label: 'Medium',
+                              onTap: () => _openNewGameAndRefreshOnReturn(Level.medium),
+                            ),
+                            _DifficultyChip(
+                              label: 'Hard',
+                              onTap: () => _openNewGameAndRefreshOnReturn(Level.hard),
+                            ),
+                            _DifficultyChip(
+                              label: 'Expert',
+                              onTap: () => _openNewGameAndRefreshOnReturn(Level.expert),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    _DifficultyChip(
-                      label: 'Medium',
-                      onTap: () => _openNewGameAndRefreshOnReturn(Level.medium),
+                  ),
+                  const Divider(height: 32),
+                  _SectionBlock(
+                    title: 'Statistics',
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: FilledButton.tonalIcon(
+                        onPressed: () {
+                          InterstitialAdService.tryShowInterstitial(
+                            context,
+                            InterstitialTrigger.viewStatistics,
+                            onDone: () => showStatsDialog(context),
+                          );
+                        },
+                        icon: const Icon(Icons.bar_chart),
+                        label: const Text('View statistics'),
+                      ),
                     ),
-                    _DifficultyChip(
-                      label: 'Hard',
-                      onTap: () => _openNewGameAndRefreshOnReturn(Level.hard),
+                  ),
+                  const Divider(height: 32),
+                  _SectionBlock(
+                    title: 'Settings',
+                    child: const Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: _SettingsSection(),
                     ),
-                    _DifficultyChip(
-                      label: 'Expert',
-                      onTap: () => _openNewGameAndRefreshOnReturn(Level.expert),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Statistics
-            _SectionCard(
-              title: 'Statistics',
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: FilledButton.tonalIcon(
-                  onPressed: () {
-                    InterstitialAdService.tryShowInterstitial(
-                      context,
-                      InterstitialTrigger.viewStatistics,
-                      onDone: () => showStatsDialog(context),
-                    );
-                  },
-                  icon: const Icon(Icons.bar_chart),
-                  label: const Text('View statistics'),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Settings
-            _SectionCard(
-              title: 'Settings',
-              child: const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: _SettingsSection(),
-              ),
-            ),
+                  ),
                 ],
               ),
             ),
@@ -333,30 +329,27 @@ class _ContinueRow extends StatelessWidget {
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.child});
+class _SectionBlock extends StatelessWidget {
+  const _SectionBlock({required this.title, required this.child});
 
   final String title;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-            child,
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
         ),
-      ),
+        const SizedBox(height: 8),
+        child,
+      ],
     );
   }
 }
