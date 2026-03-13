@@ -169,21 +169,40 @@ class _SettingsSection extends ConsumerWidget {
               ),
         ),
         const SizedBox(height: 8),
-        SegmentedButton<ThemeMode>(
-          style: SegmentedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-            textStyle: Theme.of(context).textTheme.labelSmall,
-            visualDensity: VisualDensity.compact,
-          ),
-          segments: [
-            ButtonSegment(value: ThemeMode.light, label: Text(l10n.themeLight), icon: const Icon(Icons.light_mode, size: 16)),
-            ButtonSegment(value: ThemeMode.dark, label: Text(l10n.themeDark), icon: const Icon(Icons.dark_mode, size: 16)),
-            ButtonSegment(value: ThemeMode.system, label: Text(l10n.themeSystem), icon: const Icon(Icons.brightness_auto, size: 16)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            IconButton(
+              icon: Icon(
+                Icons.light_mode,
+                color: themeMode == ThemeMode.light
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurface,
+              ),
+              tooltip: l10n.lightTheme,
+              onPressed: () => notifierTheme.setThemeMode(ThemeMode.light),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.dark_mode,
+                color: themeMode == ThemeMode.dark
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurface,
+              ),
+              tooltip: l10n.darkTheme,
+              onPressed: () => notifierTheme.setThemeMode(ThemeMode.dark),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.brightness_auto,
+                color: themeMode == ThemeMode.system
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurface,
+              ),
+              tooltip: l10n.followSystem,
+              onPressed: () => notifierTheme.setThemeMode(ThemeMode.system),
+            ),
           ],
-          selected: {themeMode},
-          onSelectionChanged: (Set<ThemeMode> selected) {
-            notifierTheme.setThemeMode(selected.first);
-          },
         ),
         const SizedBox(height: 20),
         Text(
