@@ -137,6 +137,33 @@ class GameStorage {
   }
 
   static const _keyAccentIndex = 'accent_index';
+  static const _keyVibrationEnabled = 'vibration_enabled';
+
+  /// Saves whether haptic/vibration feedback is enabled. Default true.
+  static Future<void> saveVibrationEnabled(bool enabled) async {
+    await box.put(_keyVibrationEnabled, enabled);
+  }
+
+  /// Returns whether vibration is enabled. Default true.
+  static bool loadVibrationEnabled() {
+    final raw = box.get(_keyVibrationEnabled);
+    if (raw == null) return true;
+    if (raw is bool) return raw;
+    if (raw is String) return raw != 'false';
+    return true;
+  }
+
+  /// Key for saved game timestamp (ISO 8601 string). Optional in saved game map.
+  static const String keySavedAt = 'savedAt';
+
+  /// Resets all statistics to zero. Does not clear saved game.
+  static Future<void> resetStats() async {
+    await saveStats(
+      totalWins: 0,
+      bestTimeByLevel: {},
+      bestTimeHintsByLevel: {},
+    );
+  }
 
   /// Saves accent color index (0-based). Default 0 = blue.
   static Future<void> saveAccentIndex(int index) async {

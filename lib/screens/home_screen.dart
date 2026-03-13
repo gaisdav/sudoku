@@ -4,6 +4,7 @@ import 'package:sudoku_dart/sudoku_dart.dart';
 
 import '../providers/accent_color_provider.dart';
 import '../providers/theme_mode_provider.dart';
+import '../providers/vibration_enabled_provider.dart';
 import '../services/game_storage.dart';
 import '../services/interstitial_ad_service.dart';
 import '../widgets/banner_ad_widget.dart';
@@ -219,6 +220,15 @@ class _SettingsSection extends ConsumerWidget {
             );
           }),
         ),
+        const SizedBox(height: 16),
+        SwitchListTile(
+          title: const Text('Vibration'),
+          subtitle: const Text('Haptic feedback when tapping cells and buttons'),
+          value: ref.watch(vibrationEnabledProvider),
+          onChanged: (value) {
+            ref.read(vibrationEnabledProvider.notifier).setEnabled(value);
+          },
+        ),
       ],
     );
   }
@@ -239,6 +249,11 @@ class _ContinueRow extends StatelessWidget {
     final difficultyIndex = (saved?[GameStorage.keyDifficulty] as num?)?.toInt() ?? 0;
     final levelLabel = _levelLabels[difficultyIndex.clamp(0, _levelLabels.length - 1)];
     final elapsedSeconds = (saved?[GameStorage.keyElapsedSeconds] as num?)?.toInt() ?? 0;
+    final savedAtRaw = saved?[GameStorage.keySavedAt] as String?;
+    DateTime? savedAt;
+    if (savedAtRaw != null && savedAtRaw.isNotEmpty) {
+      savedAt = DateTime.tryParse(savedAtRaw);
+    }
 
     return Row(
       children: [
@@ -267,12 +282,35 @@ class _ContinueRow extends StatelessWidget {
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                 ),
+                if (savedAt != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    _formatSavedAt(savedAt),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
               ],
             ),
           ),
         ],
       ],
     );
+  }
+
+  static String _formatSavedAt(DateTime savedAt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final savedDay = DateTime(savedAt.year, savedAt.month, savedAt.day);
+    if (savedDay == today) {
+      return 'Saved today at ${savedAt.hour.toString().padLeft(2, '0')}:${savedAt.minute.toString().padLeft(2, '0')}';
+    }
+    final yesterday = today.subtract(const Duration(days: 1));
+    if (savedDay == yesterday) {
+      return 'Saved yesterday at ${savedAt.hour.toString().padLeft(2, '0')}:${savedAt.minute.toString().padLeft(2, '0')}';
+    }
+    return 'Saved ${savedAt.day.toString().padLeft(2, '0')}.${savedAt.month.toString().padLeft(2, '0')}.${savedAt.year}';
   }
 }
 

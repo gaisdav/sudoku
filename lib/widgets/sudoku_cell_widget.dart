@@ -1,9 +1,9 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../config/app_colors.dart';
+import '../utils/vibration_helper.dart';
 import '../models/sudoku_cell.dart';
 
 class SudokuCellWidget extends StatelessWidget {
@@ -41,7 +41,7 @@ class SudokuCellWidget extends StatelessWidget {
   final VoidCallback onTap;
 
   void _onTap() {
-    HapticFeedback.selectionClick();
+    hapticSelection();
     onTap();
   }
 

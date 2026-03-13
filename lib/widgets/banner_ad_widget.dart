@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../config/app_colors.dart';
+import '../utils/vibration_helper.dart';
 import '../ads_platform.dart';
 
 /// Баннерная реклама (anchored adaptive) для размещения внизу экрана.
@@ -104,7 +104,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
             child: _CollapseChip(
               arrowDown: true,
               onTap: () {
-                HapticFeedback.selectionClick();
+                hapticSelection();
                 setState(() => _expanded = false);
               },
             ),
@@ -116,7 +116,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     return _CollapseChip(
       arrowDown: false,
       onTap: () {
-        HapticFeedback.selectionClick();
+        hapticSelection();
         setState(() => _expanded = true);
       },
     );

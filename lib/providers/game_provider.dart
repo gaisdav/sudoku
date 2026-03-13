@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudoku_dart/sudoku_dart.dart';
 
@@ -54,8 +53,12 @@ class GameState {
     this.undoStack = const [],
     int? undoRemaining,
     this.noErrorsModeThisSession = false,
+    this.previousBestTimeForLevel,
   })  : cellNotes = cellNotes ?? _emptyCellNotes(),
         undoRemaining = undoRemaining ?? _maxUndoForLevel(Level.easy);
+
+  /// Set when game is won: best time for this level before this win (null = first win for this level). For victory dialog.
+  final int? previousBestTimeForLevel;
 
   final List<SudokuCell> cells;
   final List<int> solution;
@@ -152,6 +155,7 @@ class GameState {
     List<UndoStep>? undoStack,
     int? undoRemaining,
     bool? noErrorsModeThisSession,
+    Object? previousBestTimeForLevel = _omit,
   }) {
     return GameState(
       cells: cells ?? this.cells,
@@ -171,6 +175,7 @@ class GameState {
       undoStack: undoStack ?? this.undoStack,
       undoRemaining: undoRemaining ?? this.undoRemaining,
       noErrorsModeThisSession: noErrorsModeThisSession ?? this.noErrorsModeThisSession,
+      previousBestTimeForLevel: identical(previousBestTimeForLevel, _omit) ? this.previousBestTimeForLevel : previousBestTimeForLevel as int?,
     );
   }
 }
@@ -221,9 +226,9 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// Двойной лёгкий отклик при заполнении строки/столбца/блока — ощущается чуть длиннее.
   void _triggerRegionCompleteHaptic() {
-    HapticFeedback.lightImpact();
+    hapticLightImpact();
     Timer(const Duration(milliseconds: 60), () {
-      HapticFeedback.lightImpact();
+      hapticLightImpact();
     });
   }
 
@@ -348,6 +353,7 @@ class GameNotifier extends StateNotifier<GameState> {
       GameStorage.keyErrorsMade: state.errorsMade,
       GameStorage.keyIsNotesMode: state.isNotesMode,
       GameStorage.keyCellNotes: state.cellNotes.map((s) => s.toList()).toList(),
+      GameStorage.keySavedAt: DateTime.now().toIso8601String(),
     };
     await GameStorage.saveGame(data);
   }
@@ -787,8 +793,9 @@ class GameNotifier extends StateNotifier<GameState> {
       if (c.value == 0 || c.isWrong) return;
     }
     _stopTimer();
-    state = state.copyWith(isWon: true);
+    final prevBest = GameStorage.loadBestTimeByLevel()[state.difficulty.index];
     _persistStats();
+    state = state.copyWith(isWon: true, previousBestTimeForLevel: prevBest);
     GameStorage.saveGame(null);
   }
 

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudoku_dart/sudoku_dart.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../config/app_colors.dart';
 import '../providers/game_provider.dart';
-import '../utils/vibration_helper.dart';
+import '../utils/vibration_helper.dart' show hapticLightImpact, hapticSelection, vibrateOnGameOver;
 import '../providers/theme_mode_provider.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/rewarded_ad_service.dart';
@@ -84,7 +83,13 @@ class _GameScreenState extends ConsumerState<GameScreen>
         showDialog<void>(
           context: context,
           barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
+          builder: (ctx) {
+            final prevBest = next.previousBestTimeForLevel;
+            final isNewRecord = prevBest == null || next.elapsedSeconds <= prevBest;
+            final recordText = isNewRecord
+                ? 'New record!'
+                : '${formatDuration(next.elapsedSeconds - prevBest)} slower than your best';
+            return AlertDialog(
             title: const Text('You won!'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -100,6 +105,16 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 Text(
                   'Hints used: ${next.hintsUsedThisGame}',
                   style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  recordText,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: isNewRecord
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
               ],
             ),
@@ -131,7 +146,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 child: const Text('New game'),
               ),
             ],
-          ),
+          );
+          },
         );
       }
       if (next.errorsMade > next.maxErrors &&
@@ -594,7 +610,7 @@ class _GameScreenBody extends ConsumerWidget {
                                       onPressed: state.isWon
                                           ? null
                                           : () {
-                                              HapticFeedback.selectionClick();
+                                              hapticSelection();
                                               notifier.onAppPaused();
                                               InterstitialAdService.tryShowInterstitial(
                                                 context,
@@ -614,7 +630,7 @@ class _GameScreenBody extends ConsumerWidget {
                                       onPressed: state.isWon
                                           ? null
                                           : () async {
-                                              HapticFeedback.lightImpact();
+                                              hapticLightImpact();
                                               final applied = notifier.applyHint();
                                               if (!applied) {
                                                 if (!context.mounted) return;
@@ -689,7 +705,7 @@ class _GameScreenBody extends ConsumerWidget {
   static void _onUndoTap(BuildContext context, WidgetRef ref, GameState state) {
     final notifier = ref.read(gameProvider.notifier);
     if (state.undoRemaining > 0) {
-      HapticFeedback.selectionClick();
+      hapticSelection();
       notifier.undo();
       return;
     }

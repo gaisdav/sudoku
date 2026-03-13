@@ -1,8 +1,9 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../utils/vibration_helper.dart';
 import 'package:sudoku_dart/sudoku_dart.dart';
 
 import '../config/app_colors.dart';
@@ -100,10 +101,10 @@ class NumberPad extends ConsumerWidget {
         onPressed: canEdit && digitEnabled
             ? () {
                 if (isNotesMode) {
-                  HapticFeedback.lightImpact();
+                  hapticLightImpact();
                   notifier.toggleNote(n);
                 } else {
-                  HapticFeedback.lightImpact();
+                  hapticLightImpact();
                   notifier.setCellValue(n);
                 }
               }
@@ -122,7 +123,7 @@ class NumberPad extends ConsumerWidget {
         icon: Icons.close,
         onPressed: canEdit
             ? () {
-                HapticFeedback.selectionClick();
+                hapticSelection();
                 if (isNotesMode) {
                   notifier.clearNotesInCell();
                 } else {
