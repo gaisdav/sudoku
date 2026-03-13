@@ -134,7 +134,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
           ),
         );
       }
-      if (next.errorsMade > next.maxErrors && !next.gameOverDialogShown) {
+      if (next.errorsMade > next.maxErrors &&
+          !next.gameOverDialogShown &&
+          !next.noErrorsModeThisSession) {
         ref.read(gameProvider.notifier).markGameOverDialogShown();
         ref.read(gameProvider.notifier).pauseTimer();
         vibrateOnGameOver();
@@ -151,9 +153,11 @@ const _kActionCompactWidth = 360.0;
 /// Ширина экрана, при которой кнопки достигают максимального размера (планшеты).
 const _kActionLargeWidth = 640.0;
 
-/// Диалог «загрузка рекламы» со спиннером (Hint, Undo, Second chance).
+/// Loading-ad dialog with spinner (Hint, Undo, Second chance, No errors mode).
 class _LoadingAdDialog extends StatelessWidget {
-  const _LoadingAdDialog();
+  const _LoadingAdDialog({this.message});
+
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
@@ -170,7 +174,7 @@ class _LoadingAdDialog extends StatelessWidget {
           const SizedBox(width: 20),
           Flexible(
             child: Text(
-              'Loading ad…',
+              message ?? 'Loading ad…',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w500,
               ),
@@ -180,6 +184,79 @@ class _LoadingAdDialog extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Show "No errors mode" dialog: explanation and "Watch 3 ads" / "Cancel". Timer is already paused.
+void _showNoErrorsModeDialog(BuildContext context, WidgetRef ref) {
+  final notifier = ref.read(gameProvider.notifier);
+  final alreadyEnabled = ref.read(gameProvider).noErrorsModeThisSession;
+  showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('No errors mode'),
+      content: Text(
+        alreadyEnabled
+            ? 'No errors mode is already on for this session. Wrong cells are highlighted in red but the game will not end from too many errors.'
+            : 'In this mode wrong cells are highlighted in red but the game will not end from too many errors.\n\n'
+                'To enable it for this session, watch 3 ads in a row. The timer is paused.',
+      ),
+      actions: [
+        if (!alreadyEnabled)
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              notifier.onAppResumed();
+            },
+            child: const Text('Cancel'),
+          ),
+        FilledButton(
+          onPressed: () {
+            Navigator.of(ctx).pop();
+            if (alreadyEnabled) {
+              notifier.onAppResumed();
+            } else {
+              _watchAdsForNoErrorsMode(context, ref, 0);
+            }
+          },
+          child: Text(alreadyEnabled ? 'OK' : 'Watch 3 ads'),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Show ad at [adIndex] (0, 1, 2); after the third, enable no-errors mode and resume timer.
+void _watchAdsForNoErrorsMode(BuildContext context, WidgetRef ref, int adIndex) {
+  final notifier = ref.read(gameProvider.notifier);
+  if (adIndex >= 3) {
+    notifier.setNoErrorsModeThisSession(true);
+    notifier.onAppResumed();
+    return;
+  }
+  if (!context.mounted) return;
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => _LoadingAdDialog(
+      message: 'Ad ${adIndex + 1}/3…',
+    ),
+  );
+  showRewardedAd(
+    context,
+    onAdReadyToShow: () {
+      if (context.mounted) Navigator.of(context).pop();
+    },
+    onRewarded: () {},
+    onDismissed: () {
+      if (context.mounted) _watchAdsForNoErrorsMode(context, ref, adIndex + 1);
+    },
+    onNotAvailable: () {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        notifier.onAppResumed();
+      }
+    },
+  );
 }
 
 void showGameOverDialog(
@@ -316,21 +393,24 @@ class _GameScreenBody extends ConsumerWidget {
                   if (context.mounted) notifier.onAppResumed();
                 });
               }
-              if (value == 'theme_light') ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.light);
-              if (value == 'theme_dark') ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark);
-              if (value == 'theme_system') ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.system);
+              if (value == 'no_errors') {
+                notifier.pauseTimer();
+                _showNoErrorsModeDialog(context, ref);
+              }
             },
             itemBuilder: (context) {
               final themeMode = ref.watch(themeModeProvider);
+              final gameState = ref.watch(gameProvider);
+              final colorScheme = Theme.of(context).colorScheme;
               return [
                 const PopupMenuItem(value: 'new', child: Text('New game')),
                 const PopupMenuItem(value: 'stats', child: Text('Statistics')),
                 PopupMenuItem<String>(
-                  value: 'theme_light',
+                  value: 'no_errors',
                   child: Row(
                     children: [
-                      const Text('Light theme'),
-                      if (themeMode == ThemeMode.light) ...[
+                      const Text('No errors mode'),
+                      if (gameState.noErrorsModeThisSession) ...[
                         const Spacer(),
                         const Icon(Icons.check, size: 20),
                       ],
@@ -338,27 +418,53 @@ class _GameScreenBody extends ConsumerWidget {
                   ),
                 ),
                 PopupMenuItem<String>(
-                  value: 'theme_dark',
-                  child: Row(
-                    children: [
-                      const Text('Dark theme'),
-                      if (themeMode == ThemeMode.dark) ...[
-                        const Spacer(),
-                        const Icon(Icons.check, size: 20),
+                  value: 'theme_row',
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.light_mode,
+                            color: themeMode == ThemeMode.light
+                                ? colorScheme.primary
+                                : colorScheme.onSurface,
+                          ),
+                          tooltip: 'Light theme',
+                          onPressed: () {
+                            ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.light);
+                            Navigator.pop(context);
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.dark_mode,
+                            color: themeMode == ThemeMode.dark
+                                ? colorScheme.primary
+                                : colorScheme.onSurface,
+                          ),
+                          tooltip: 'Dark theme',
+                          onPressed: () {
+                            ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark);
+                            Navigator.pop(context);
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.brightness_auto,
+                            color: themeMode == ThemeMode.system
+                                ? colorScheme.primary
+                                : colorScheme.onSurface,
+                          ),
+                          tooltip: 'Follow system',
+                          onPressed: () {
+                            ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.system);
+                            Navigator.pop(context);
+                          },
+                        ),
                       ],
-                    ],
-                  ),
-                ),
-                PopupMenuItem<String>(
-                  value: 'theme_system',
-                  child: Row(
-                    children: [
-                      const Text('Follow system'),
-                      if (themeMode == ThemeMode.system) ...[
-                        const Spacer(),
-                        const Icon(Icons.check, size: 20),
-                      ],
-                    ],
+                    ),
                   ),
                 ),
               ];
@@ -412,19 +518,33 @@ class _GameScreenBody extends ConsumerWidget {
                   ),
                   if (state.difficulty != Level.expert) ...[
                     const Spacer(),
-                    Icon(Icons.warning_amber_rounded,
-                        size: 20, color: colors.textMutedDark),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${state.errorsMade} / ${state.maxErrors}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: state.errorsMade >= state.maxErrors
-                            ? colors.errorDark
-                            : colors.textSecondary,
-                        fontWeight: FontWeight.w500,
+                    if (state.noErrorsModeThisSession) ...[
+                      Icon(Icons.check_circle_outline,
+                          size: 20, color: colors.primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        'No errors',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colors.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
+                    ] else ...[
+                      Icon(Icons.warning_amber_rounded,
+                          size: 20, color: colors.textMutedDark),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${state.errorsMade} / ${state.maxErrors}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: state.errorsMade >= state.maxErrors
+                              ? colors.errorDark
+                              : colors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ),

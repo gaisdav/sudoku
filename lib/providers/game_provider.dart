@@ -53,6 +53,7 @@ class GameState {
     this.conflictFlashDigit,
     this.undoStack = const [],
     int? undoRemaining,
+    this.noErrorsModeThisSession = false,
   })  : cellNotes = cellNotes ?? _emptyCellNotes(),
         undoRemaining = undoRemaining ?? _maxUndoForLevel(Level.easy);
 
@@ -80,6 +81,8 @@ class GameState {
   final List<UndoStep> undoStack;
   /// Free undos left this game. Expert = 0 (every undo via ad).
   final int undoRemaining;
+  /// No game over from errors this session (unlocked by watching 3 rewarded ads in menu).
+  final bool noErrorsModeThisSession;
 
   SudokuCell cellAt(int index) => cells[index];
 
@@ -148,6 +151,7 @@ class GameState {
     Object? conflictFlashDigit = _omit,
     List<UndoStep>? undoStack,
     int? undoRemaining,
+    bool? noErrorsModeThisSession,
   }) {
     return GameState(
       cells: cells ?? this.cells,
@@ -166,6 +170,7 @@ class GameState {
       conflictFlashDigit: identical(conflictFlashDigit, _omit) ? this.conflictFlashDigit : conflictFlashDigit as int?,
       undoStack: undoStack ?? this.undoStack,
       undoRemaining: undoRemaining ?? this.undoRemaining,
+      noErrorsModeThisSession: noErrorsModeThisSession ?? this.noErrorsModeThisSession,
     );
   }
 }
@@ -423,6 +428,26 @@ class GameNotifier extends StateNotifier<GameState> {
     return {for (int n = 1; n <= 9; n++) n}..removeAll(blocked);
   }
 
+  /// Indices of all cells in the same row, column, and 3×3 block as [index] (excluding [index]).
+  Set<int> _peerIndices(int index) {
+    final row = index ~/ 9;
+    final col = index % 9;
+    final result = <int>{};
+    for (int i = 0; i < 9; i++) {
+      result.add(row * 9 + i);
+      result.add(i * 9 + col);
+    }
+    final br = (row ~/ 3) * 3;
+    final bc = (col ~/ 3) * 3;
+    for (int r = 0; r < 3; r++) {
+      for (int c = 0; c < 3; c++) {
+        result.add((br + r) * 9 + (bc + c));
+      }
+    }
+    result.remove(index);
+    return result;
+  }
+
   /// Indices of cells (in same row/col/block as [index]) that have original digit [digit]. Used for conflict flash.
   Set<int> _cellsWithOriginalDigit(int index, int digit) {
     final row = index ~/ 9;
@@ -567,14 +592,19 @@ class GameNotifier extends StateNotifier<GameState> {
     final previousComplete = _completeRegionIds(state);
     final newCells = List<SudokuCell>.from(state.cells);
     newCells[idx] = cell.copyWith(value: digit, isHint: false);
-    List<Set<int>> newNotes = state.cellNotes;
-    if (state.cellNotes[idx].isNotEmpty) {
-      newNotes = List<Set<int>>.from(state.cellNotes);
-      newNotes[idx] = <int>{};
+    // Auto-clear conflicting notes: remove [digit] from notes in same row/column/block.
+    List<Set<int>> newNotes = state.cellNotes
+        .map((s) => Set<int>.from(s))
+        .toList();
+    newNotes[idx] = <int>{};
+    for (final p in _peerIndices(idx)) {
+      if (newNotes[p].contains(digit)) {
+        newNotes[p] = Set<int>.from(newNotes[p])..remove(digit);
+      }
     }
     state = state.copyWith(cells: newCells, cellNotes: newNotes);
     _revalidateWrong();
-    if (state.cells[idx].isWrong) {
+    if (state.cells[idx].isWrong && !state.noErrorsModeThisSession) {
       state = state.copyWith(errorsMade: state.errorsMade + 1);
       vibrateOnError();
     }
@@ -628,6 +658,11 @@ class GameNotifier extends StateNotifier<GameState> {
   void resetGameOverDialogShown() {
     state = state.copyWith(gameOverDialogShown: false);
     _persistGame();
+  }
+
+  /// Enable "no errors" mode for this session (no game over from errors; unlocked via 3 rewarded ads in menu).
+  void setNoErrorsModeThisSession(bool value) {
+    state = state.copyWith(noErrorsModeThisSession: value);
   }
 
   /// For "second chance (Ad)": forgive one error so the counter goes down by 1.
@@ -716,10 +751,15 @@ class GameNotifier extends StateNotifier<GameState> {
       value: solutionValue,
       isHint: true,
     );
-    List<Set<int>> newNotes = state.cellNotes;
-    if (state.cellNotes[target].isNotEmpty) {
-      newNotes = List<Set<int>>.from(state.cellNotes);
-      newNotes[target] = <int>{};
+    // Auto-clear conflicting notes: remove solutionValue from notes in same row/column/block.
+    List<Set<int>> newNotes = state.cellNotes
+        .map((s) => Set<int>.from(s))
+        .toList();
+    newNotes[target] = <int>{};
+    for (final p in _peerIndices(target)) {
+      if (newNotes[p].contains(solutionValue)) {
+        newNotes[p] = Set<int>.from(newNotes[p])..remove(solutionValue);
+      }
     }
     // After ad: restore full limit and count this hint as one used (e.g. Easy → 2 left). Otherwise just increment.
     final newHintsUsed = state.freeHintsLeft <= 0 ? 1 : state.hintsUsedThisGame + 1;
