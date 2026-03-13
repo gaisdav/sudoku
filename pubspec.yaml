@@ -1,7 +1,7 @@
 name: sudoku
 description: Sudoku game for Android and iOS (Flutter).
 publish_to: "none"
-version: 0.0.22+22
+version: 0.0.23+23
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -9,6 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
   flutter_dotenv: ^5.2.0
   google_mobile_ads: ^5.1.0
   flutter_riverpod: ^2.4.9
@@ -23,6 +26,7 @@ dev_dependencies:
   flutter_lints: ^3.0.0
 
 flutter:
+  generate: true
   uses-material-design: true
   assets:
     - .env.example

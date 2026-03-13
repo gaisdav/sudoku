@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudoku_dart/sudoku_dart.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/accent_color_provider.dart';
+import '../providers/locale_provider.dart';
 import '../providers/theme_mode_provider.dart';
 import '../providers/vibration_enabled_provider.dart';
 import '../services/game_storage.dart';
@@ -40,9 +42,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final hasSavedGame = GameStorage.loadGame() != null;
 
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sudoku'),
+        title: Text(l10n.appTitle),
       ),
       body: SafeArea(
         child: Column(
@@ -52,7 +55,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 children: [
                   _SectionBlock(
-                    title: 'Game',
+                    title: l10n.game,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -77,7 +80,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'New game',
+                          l10n.newGame,
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
@@ -88,19 +91,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           runSpacing: 10,
                           children: [
                             _DifficultyChip(
-                              label: 'Easy',
+                              label: l10n.levelEasy,
                               onTap: () => _openNewGameAndRefreshOnReturn(Level.easy),
                             ),
                             _DifficultyChip(
-                              label: 'Medium',
+                              label: l10n.levelMedium,
                               onTap: () => _openNewGameAndRefreshOnReturn(Level.medium),
                             ),
                             _DifficultyChip(
-                              label: 'Hard',
+                              label: l10n.levelHard,
                               onTap: () => _openNewGameAndRefreshOnReturn(Level.hard),
                             ),
                             _DifficultyChip(
-                              label: 'Expert',
+                              label: l10n.levelExpert,
                               onTap: () => _openNewGameAndRefreshOnReturn(Level.expert),
                             ),
                           ],
@@ -110,7 +113,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const Divider(height: 32),
                   _SectionBlock(
-                    title: 'Statistics',
+                    title: l10n.statistics,
                     child: Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: FilledButton.tonalIcon(
@@ -122,13 +125,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           );
                         },
                         icon: const Icon(Icons.bar_chart),
-                        label: const Text('View statistics'),
+                        label: Text(l10n.viewStatistics),
                       ),
                     ),
                   ),
                   const Divider(height: 32),
                   _SectionBlock(
-                    title: 'Settings',
+                    title: l10n.settings,
                     child: const Padding(
                       padding: EdgeInsets.only(top: 4),
                       child: _SettingsSection(),
@@ -146,13 +149,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 }
 
-const List<String> _levelLabels = ['Easy', 'Medium', 'Hard', 'Expert'];
-
 class _SettingsSection extends ConsumerWidget {
   const _SettingsSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final themeMode = ref.watch(themeModeProvider);
     final accentIndex = ref.watch(accentIndexProvider);
     final notifierTheme = ref.read(themeModeProvider.notifier);
@@ -161,31 +163,78 @@ class _SettingsSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Theme',
+          l10n.theme,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
         ),
         const SizedBox(height: 8),
-        SegmentedButton<ThemeMode>(
-          style: SegmentedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-            textStyle: Theme.of(context).textTheme.labelSmall,
-            visualDensity: VisualDensity.compact,
-          ),
-          segments: const [
-            ButtonSegment(value: ThemeMode.light, label: Text('Light'), icon: Icon(Icons.light_mode, size: 16)),
-            ButtonSegment(value: ThemeMode.dark, label: Text('Dark'), icon: Icon(Icons.dark_mode, size: 16)),
-            ButtonSegment(value: ThemeMode.system, label: Text('System'), icon: Icon(Icons.brightness_auto, size: 16)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            IconButton(
+              icon: Icon(
+                Icons.light_mode,
+                color: themeMode == ThemeMode.light
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurface,
+              ),
+              tooltip: l10n.lightTheme,
+              onPressed: () => notifierTheme.setThemeMode(ThemeMode.light),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.dark_mode,
+                color: themeMode == ThemeMode.dark
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurface,
+              ),
+              tooltip: l10n.darkTheme,
+              onPressed: () => notifierTheme.setThemeMode(ThemeMode.dark),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.brightness_auto,
+                color: themeMode == ThemeMode.system
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurface,
+              ),
+              tooltip: l10n.followSystem,
+              onPressed: () => notifierTheme.setThemeMode(ThemeMode.system),
+            ),
           ],
-          selected: {themeMode},
-          onSelectionChanged: (Set<ThemeMode> selected) {
-            notifierTheme.setThemeMode(selected.first);
+        ),
+        const SizedBox(height: 20),
+        Text(
+          l10n.language,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: ref.watch(localeProvider)?.languageCode ?? 'system',
+          decoration: const InputDecoration(
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            border: OutlineInputBorder(),
+          ),
+          items: [
+            DropdownMenuItem(value: 'system', child: Text(l10n.themeSystem)),
+            DropdownMenuItem(value: 'en', child: Text(l10n.languageEnglish)),
+            DropdownMenuItem(value: 'ru', child: Text(l10n.languageRussian)),
+            DropdownMenuItem(value: 'es', child: Text(l10n.languageSpanish)),
+          ],
+          onChanged: (value) {
+            if (value == null) return;
+            ref.read(localeProvider.notifier).setLocale(
+                  value == 'system' ? null : Locale(value),
+                );
           },
         ),
         const SizedBox(height: 20),
         Text(
-          'Accent color',
+          l10n.accentColor,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -237,8 +286,8 @@ class _SettingsSection extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         SwitchListTile(
-          title: const Text('Vibration'),
-          subtitle: const Text('Haptic feedback when tapping cells and buttons'),
+          title: Text(l10n.vibration),
+          subtitle: Text(l10n.vibrationSubtitle),
           value: ref.watch(vibrationEnabledProvider),
           onChanged: (value) {
             ref.read(vibrationEnabledProvider.notifier).setEnabled(value);
@@ -260,9 +309,11 @@ class _ContinueRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final levelLabels = [l10n.levelEasy, l10n.levelMedium, l10n.levelHard, l10n.levelExpert];
     final saved = hasSavedGame ? GameStorage.loadGame() : null;
     final difficultyIndex = (saved?[GameStorage.keyDifficulty] as num?)?.toInt() ?? 0;
-    final levelLabel = _levelLabels[difficultyIndex.clamp(0, _levelLabels.length - 1)];
+    final levelLabel = levelLabels[difficultyIndex.clamp(0, levelLabels.length - 1)];
     final elapsedSeconds = (saved?[GameStorage.keyElapsedSeconds] as num?)?.toInt() ?? 0;
     final savedAtRaw = saved?[GameStorage.keySavedAt] as String?;
     DateTime? savedAt;
@@ -275,7 +326,7 @@ class _ContinueRow extends StatelessWidget {
         FilledButton.icon(
           onPressed: hasSavedGame ? onContinue : null,
           icon: const Icon(Icons.play_arrow),
-          label: const Text('Continue'),
+          label: Text(l10n.continueGame),
         ),
         if (hasSavedGame) ...[
           const SizedBox(width: 16),
@@ -300,7 +351,7 @@ class _ContinueRow extends StatelessWidget {
                 if (savedAt != null) ...[
                   const SizedBox(height: 2),
                   Text(
-                    _formatSavedAt(savedAt),
+                    _formatSavedAt(l10n, savedAt),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -314,18 +365,20 @@ class _ContinueRow extends StatelessWidget {
     );
   }
 
-  static String _formatSavedAt(DateTime savedAt) {
+  static String _formatSavedAt(AppLocalizations l10n, DateTime savedAt) {
+    final timeStr = '${savedAt.hour.toString().padLeft(2, '0')}:${savedAt.minute.toString().padLeft(2, '0')}';
+    final dateStr = '${savedAt.day.toString().padLeft(2, '0')}.${savedAt.month.toString().padLeft(2, '0')}.${savedAt.year}';
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final savedDay = DateTime(savedAt.year, savedAt.month, savedAt.day);
     if (savedDay == today) {
-      return 'Saved today at ${savedAt.hour.toString().padLeft(2, '0')}:${savedAt.minute.toString().padLeft(2, '0')}';
+      return l10n.savedTodayAt(timeStr);
     }
     final yesterday = today.subtract(const Duration(days: 1));
     if (savedDay == yesterday) {
-      return 'Saved yesterday at ${savedAt.hour.toString().padLeft(2, '0')}:${savedAt.minute.toString().padLeft(2, '0')}';
+      return l10n.savedYesterdayAt(timeStr);
     }
-    return 'Saved ${savedAt.day.toString().padLeft(2, '0')}.${savedAt.month.toString().padLeft(2, '0')}.${savedAt.year}';
+    return l10n.savedOn(dateStr);
   }
 }
 

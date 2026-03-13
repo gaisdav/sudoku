@@ -5,7 +5,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'config/app_colors.dart';
+import 'l10n/app_localizations.dart';
 import 'providers/accent_color_provider.dart';
+import 'providers/locale_provider.dart';
 import 'providers/theme_mode_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/app_open_ad_service.dart';
@@ -83,8 +85,12 @@ class _SudokuAppState extends ConsumerState<SudokuApp> with WidgetsBindingObserv
     final accentColor = accentColorOptions[accentIndex];
     final lightColors = AppColors.lightWithAccent(accentColor);
     final darkColors = AppColors.darkWithAccent(accentColor);
+    final locale = ref.watch(localeProvider);
     return MaterialApp(
       title: 'Sudoku',
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       themeMode: themeMode,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
