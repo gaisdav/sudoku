@@ -17,6 +17,7 @@ enum InterstitialTrigger {
 }
 
 /// Сервис показа межстраничной рекламы с лимитами по времени и «каждое N-е».
+/// Поддерживает предзагрузку: при показе используется кэш, если нет — загружается по требованию.
 class InterstitialAdService {
   InterstitialAdService._();
 
@@ -27,8 +28,33 @@ class InterstitialAdService {
   static int _backToMenuCount = 0;
   static int _notesCount = 0;
 
-  /// Пытается показать interstitial по триггеру. Если показ разрешён — загружает, показывает, по закрытию вызывает [onDone].
-  /// Если показ не разрешён или реклама недоступна — сразу вызывает [onDone].
+  static InterstitialAd? _cachedAd;
+  static bool _isPreloading = false;
+
+  /// Предзагрузка межстраничной рекламы (вызывается после инициализации AdMob).
+  static void preload() {
+    final adUnitId = interstitialAdUnitId;
+    if (adUnitId.isEmpty || _cachedAd != null || _isPreloading) return;
+    _isPreloading = true;
+    InterstitialAd.load(
+      adUnitId: adUnitId,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (InterstitialAd ad) {
+          _isPreloading = false;
+          _cachedAd?.dispose();
+          _cachedAd = ad;
+        },
+        onAdFailedToLoad: (LoadAdError error) {
+          debugPrint('InterstitialAd preload failed: $error');
+          _isPreloading = false;
+        },
+      ),
+    );
+  }
+
+  /// Пытается показать interstitial по триггеру. Если есть предзагруженная реклама — показывает сразу;
+  /// иначе загружает, показывает, по закрытию вызывает [onDone]. Если показ не разрешён или реклама недоступна — сразу [onDone].
   static Future<void> tryShowInterstitial(
     BuildContext context,
     InterstitialTrigger trigger, {
@@ -100,6 +126,33 @@ class InterstitialAdService {
       return;
     }
 
+    void onAdDismissed(Ad a) {
+      _lastShowTime = DateTime.now();
+      a.dispose();
+      preload();
+      onDone();
+    }
+
+    void onAdFailedToShow(Ad a, AdError error) {
+      debugPrint('InterstitialAd failed to show: $error');
+      a.dispose();
+      preload();
+      onDone();
+    }
+
+    // Есть предзагруженная реклама — показываем сразу без диалога загрузки
+    final cached = _cachedAd;
+    if (cached != null) {
+      _cachedAd = null;
+      cached.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: onAdDismissed,
+        onAdFailedToShowFullScreenContent: onAdFailedToShow,
+      );
+      cached.show();
+      return;
+    }
+
+    // Нет кэша — показываем спиннер и загружаем по требованию
     final loader = loadingDialog ?? _defaultLoadingDialog;
     if (context.mounted) {
       showDialog<void>(
@@ -121,16 +174,8 @@ class InterstitialAdService {
           }
           Navigator.of(context).pop();
           ad.fullScreenContentCallback = FullScreenContentCallback(
-            onAdDismissedFullScreenContent: (Ad a) {
-              _lastShowTime = DateTime.now();
-              a.dispose();
-              onDone();
-            },
-            onAdFailedToShowFullScreenContent: (Ad a, AdError error) {
-              debugPrint('InterstitialAd failed to show: $error');
-              a.dispose();
-              onDone();
-            },
+            onAdDismissedFullScreenContent: onAdDismissed,
+            onAdFailedToShowFullScreenContent: onAdFailedToShow,
           );
           ad.show();
         },

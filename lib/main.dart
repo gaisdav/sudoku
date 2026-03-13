@@ -10,6 +10,8 @@ import 'providers/theme_mode_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/app_open_ad_service.dart';
 import 'services/game_storage.dart';
+import 'services/interstitial_ad_service.dart';
+import 'services/rewarded_ad_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +47,10 @@ class _SudokuAppState extends ConsumerState<SudokuApp> with WidgetsBindingObserv
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AppOpenAdService.maybeShowColdStart();
+      AppOpenAdService.runWhenAdsReady(() {
+        InterstitialAdService.preload();
+        preloadRewardedAd();
+      });
     });
   }
 
