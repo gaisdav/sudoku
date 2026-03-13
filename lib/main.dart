@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'config/app_colors.dart';
+import 'providers/theme_mode_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/app_open_ad_service.dart';
 import 'services/game_storage.dart';
@@ -29,14 +30,14 @@ void main() async {
   runApp(const ProviderScope(child: SudokuApp()));
 }
 
-class SudokuApp extends StatefulWidget {
+class SudokuApp extends ConsumerStatefulWidget {
   const SudokuApp({super.key});
 
   @override
-  State<SudokuApp> createState() => _SudokuAppState();
+  ConsumerState<SudokuApp> createState() => _SudokuAppState();
 }
 
-class _SudokuAppState extends State<SudokuApp> with WidgetsBindingObserver {
+class _SudokuAppState extends ConsumerState<SudokuApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
@@ -70,8 +71,10 @@ class _SudokuAppState extends State<SudokuApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
     return MaterialApp(
       title: 'Sudoku',
+      themeMode: themeMode,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.light.primary,
@@ -104,3 +107,4 @@ class _SudokuAppState extends State<SudokuApp> with WidgetsBindingObserver {
     );
   }
 }
+

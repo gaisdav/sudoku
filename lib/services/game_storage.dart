@@ -8,6 +8,7 @@ class GameStorage {
   static const _boxName = 'sudoku_game';
   static const _keySavedGame = 'saved_game';
   static const _keyStats = 'stats';
+  static const _keyThemeMode = 'theme_mode';
 
   static Box? _box;
 
@@ -112,5 +113,23 @@ class GameStorage {
     } catch (_) {
       return {};
     }
+  }
+
+  // --- Settings (theme, etc.) ---
+
+  static const String valueThemeDark = 'dark';
+  static const String valueThemeLight = 'light';
+
+  /// Saves theme mode. [value] must be [valueThemeDark] or [valueThemeLight].
+  static Future<void> saveThemeMode(String value) async {
+    await box.put(_keyThemeMode, value);
+  }
+
+  /// Returns saved theme: [valueThemeDark] or [valueThemeLight]. Default: [valueThemeDark].
+  static String loadThemeMode() {
+    final raw = box.get(_keyThemeMode);
+    if (raw == null) return valueThemeDark;
+    final s = raw.toString();
+    return s == valueThemeLight ? valueThemeLight : valueThemeDark;
   }
 }

@@ -6,6 +6,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../config/app_colors.dart';
 import '../providers/game_provider.dart';
+import '../providers/theme_mode_provider.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/rewarded_ad_service.dart';
 import '../widgets/banner_ad_widget.dart';
@@ -314,10 +315,33 @@ class _GameScreenBody extends ConsumerWidget {
                 });
               }
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 'new', child: Text('New game')),
-              const PopupMenuItem(value: 'stats', child: Text('Statistics')),
-            ],
+            itemBuilder: (context) {
+              final themeMode = ref.watch(themeModeProvider);
+              final isDark = themeMode == ThemeMode.dark;
+              return [
+                const PopupMenuItem(value: 'new', child: Text('New game')),
+                const PopupMenuItem(value: 'stats', child: Text('Statistics')),
+                PopupMenuItem<String>(
+                  value: 'theme',
+                  enabled: false,
+                  child: Row(
+                    children: [
+                      Text(
+                        'Dark theme',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      const Spacer(),
+                      Switch(
+                        value: isDark,
+                        onChanged: (_) {
+                          ref.read(themeModeProvider.notifier).toggle();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ];
+            },
           ),
         ],
       ),

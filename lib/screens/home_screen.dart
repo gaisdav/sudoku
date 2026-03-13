@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudoku_dart/sudoku_dart.dart';
 
+import '../providers/theme_mode_provider.dart';
 import '../services/game_storage.dart';
 import '../services/interstitial_ad_service.dart';
 import '../widgets/banner_ad_widget.dart';
@@ -125,6 +126,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 24),
+
+            // Settings
+            _SectionCard(
+              title: 'Settings',
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: _ThemeSwitch(),
+              ),
+            ),
                 ],
               ),
             ),
@@ -138,6 +149,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 const List<String> _levelLabels = ['Easy', 'Medium', 'Hard', 'Expert'];
+
+class _ThemeSwitch extends ConsumerWidget {
+  const _ThemeSwitch();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark;
+    return SwitchListTile(
+      title: const Text('Dark theme'),
+      value: isDark,
+      onChanged: (_) {
+        ref.read(themeModeProvider.notifier).toggle();
+      },
+    );
+  }
+}
 
 class _ContinueRow extends StatelessWidget {
   const _ContinueRow({
