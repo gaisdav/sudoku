@@ -4,6 +4,7 @@ import 'package:sudoku_dart/sudoku_dart.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../config/app_colors.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/game_provider.dart';
 import '../utils/vibration_helper.dart'
     show hapticLightImpact, hapticSelection, vibrateOnGameOver;
@@ -85,27 +86,28 @@ class _GameScreenState extends ConsumerState<GameScreen>
           context: context,
           barrierDismissible: false,
           builder: (ctx) {
+            final l10n = AppLocalizations.of(context)!;
             final prevBest = next.previousBestTimeForLevel;
             final isNewRecord =
                 prevBest == null || next.elapsedSeconds <= prevBest;
             final recordText = isNewRecord
-                ? 'New record!'
-                : '${formatDuration(next.elapsedSeconds - prevBest)} slower than your best';
+                ? l10n.newRecord
+                : l10n.slowerThanBest(formatDuration(next.elapsedSeconds - prevBest));
             return AlertDialog(
-              title: const Text('You won!'),
+              title: Text(l10n.youWon),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Congratulations, you completed the puzzle.'),
+                  Text(l10n.congratulations),
                   const SizedBox(height: 8),
                   Text(
-                    'Time: ${formatDuration(next.elapsedSeconds)}',
+                    l10n.timeLabel(formatDuration(next.elapsedSeconds)),
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Hints used: ${next.hintsUsedThisGame}',
+                    l10n.hintsUsedLabel(next.hintsUsedThisGame),
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                   const SizedBox(height: 8),
@@ -132,7 +134,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                       },
                     );
                   },
-                  child: const Text('Back to menu'),
+                  child: Text(l10n.backToMenu),
                 ),
                 TextButton(
                   onPressed: () {
@@ -145,7 +147,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                       },
                     );
                   },
-                  child: const Text('New game'),
+                  child: Text(l10n.newGame),
                 ),
               ],
             );
@@ -193,7 +195,7 @@ class _LoadingAdDialog extends StatelessWidget {
           const SizedBox(width: 20),
           Flexible(
             child: Text(
-              message ?? 'Loading ad…',
+              message ?? AppLocalizations.of(context)!.loadingAd,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w500,
                   ),
@@ -207,17 +209,17 @@ class _LoadingAdDialog extends StatelessWidget {
 
 /// Show "No errors mode" dialog: explanation and "Watch 3 ads" / "Cancel". Timer is already paused.
 void _showNoErrorsModeDialog(BuildContext context, WidgetRef ref) {
+  final l10n = AppLocalizations.of(context)!;
   final notifier = ref.read(gameProvider.notifier);
   final alreadyEnabled = ref.read(gameProvider).noErrorsModeThisSession;
   showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('No errors mode'),
+      title: Text(l10n.noErrorsMode),
       content: Text(
         alreadyEnabled
-            ? 'No errors mode is already on for this session. Wrong cells are highlighted in red but the game will not end from too many errors.'
-            : 'In this mode wrong cells are highlighted in red but the game will not end from too many errors.\n\n'
-                'To enable it for this session, watch 3 ads in a row. The timer is paused.',
+            ? l10n.noErrorsModeAlreadyOn
+            : l10n.noErrorsModeDescription,
       ),
       actions: [
         if (!alreadyEnabled)
@@ -226,7 +228,7 @@ void _showNoErrorsModeDialog(BuildContext context, WidgetRef ref) {
               Navigator.of(ctx).pop();
               notifier.onAppResumed();
             },
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
         FilledButton(
           onPressed: () {
@@ -237,7 +239,7 @@ void _showNoErrorsModeDialog(BuildContext context, WidgetRef ref) {
               _watchAdsForNoErrorsMode(context, ref, 0);
             }
           },
-          child: Text(alreadyEnabled ? 'OK' : 'Watch 3 ads'),
+          child: Text(alreadyEnabled ? l10n.ok : l10n.watch3Ads),
         ),
       ],
     ),
@@ -258,7 +260,7 @@ void _watchAdsForNoErrorsMode(
     context: context,
     barrierDismissible: false,
     builder: (ctx) => _LoadingAdDialog(
-      message: 'Ad ${adIndex + 1}/3…',
+      message: AppLocalizations.of(context)!.adProgress(adIndex + 1),
     ),
   );
   showRewardedAd(
@@ -280,14 +282,13 @@ void _watchAdsForNoErrorsMode(
 }
 
 void showGameOverDialog(BuildContext context, WidgetRef ref, Level difficulty) {
+  final l10n = AppLocalizations.of(context)!;
   showDialog<void>(
     context: context,
     barrierDismissible: false,
     builder: (ctx) => AlertDialog(
-      title: const Text('Game over'),
-      content: const Text(
-        'You have exceeded the allowed number of errors for this difficulty.',
-      ),
+      title: Text(l10n.gameOver),
+      content: Text(l10n.gameOverDescription),
       actions: [
         TextButton(
           onPressed: () {
@@ -320,16 +321,16 @@ void showGameOverDialog(BuildContext context, WidgetRef ref, Level difficulty) {
                   ref.read(gameProvider.notifier).resetGameOverDialogShown();
                   ref.read(gameProvider.notifier).onAppResumed();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Ad not available. Second chance applied.'),
-                      duration: Duration(seconds: 2),
+                    SnackBar(
+                      content: Text(l10n.adNotAvailableSecondChance),
+                      duration: const Duration(seconds: 2),
                     ),
                   );
                 }
               },
             );
           },
-          child: const Text('Second chance (Ad)'),
+          child: Text(l10n.secondChanceAd),
         ),
         TextButton(
           onPressed: () {
@@ -342,7 +343,7 @@ void showGameOverDialog(BuildContext context, WidgetRef ref, Level difficulty) {
               },
             );
           },
-          child: const Text('Restart'),
+          child: Text(l10n.restart),
         ),
         TextButton(
           onPressed: () {
@@ -357,7 +358,7 @@ void showGameOverDialog(BuildContext context, WidgetRef ref, Level difficulty) {
               },
             );
           },
-          child: const Text('Back to menu'),
+          child: Text(l10n.backToMenu),
         ),
       ],
     ),
@@ -367,6 +368,7 @@ void showGameOverDialog(BuildContext context, WidgetRef ref, Level difficulty) {
 class _GameScreenBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(gameProvider);
     final notifier = ref.read(gameProvider.notifier);
     final colors = context.appColors;
@@ -387,13 +389,13 @@ class _GameScreenBody extends ConsumerWidget {
               },
             );
           },
-          tooltip: 'Back to menu',
+          tooltip: l10n.backToMenu,
         ),
-        title: const Text('Sudoku'),
+        title: Text(l10n.appTitle),
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
-            tooltip: 'Menu',
+            tooltip: l10n.menu,
             onSelected: (value) {
               if (value == 'new') {
                 notifier.onAppPaused();
@@ -418,17 +420,18 @@ class _GameScreenBody extends ConsumerWidget {
               }
             },
             itemBuilder: (context) {
+              final l10n = AppLocalizations.of(context)!;
               final themeMode = ref.watch(themeModeProvider);
               final gameState = ref.watch(gameProvider);
               final colorScheme = Theme.of(context).colorScheme;
               return [
-                const PopupMenuItem(value: 'new', child: Text('New game')),
-                const PopupMenuItem(value: 'stats', child: Text('Statistics')),
+                PopupMenuItem(value: 'new', child: Text(l10n.newGame)),
+                PopupMenuItem(value: 'stats', child: Text(l10n.statistics)),
                 PopupMenuItem<String>(
                   value: 'no_errors',
                   child: Row(
                     children: [
-                      const Text('No errors mode'),
+                      Text(l10n.noErrorsMode),
                       if (gameState.noErrorsModeThisSession) ...[
                         const Spacer(),
                         const Icon(Icons.check, size: 20),
@@ -450,7 +453,7 @@ class _GameScreenBody extends ConsumerWidget {
                                 ? colorScheme.primary
                                 : colorScheme.onSurface,
                           ),
-                          tooltip: 'Light theme',
+                          tooltip: l10n.lightTheme,
                           onPressed: () {
                             ref
                                 .read(themeModeProvider.notifier)
@@ -465,7 +468,7 @@ class _GameScreenBody extends ConsumerWidget {
                                 ? colorScheme.primary
                                 : colorScheme.onSurface,
                           ),
-                          tooltip: 'Dark theme',
+                          tooltip: l10n.darkTheme,
                           onPressed: () {
                             ref
                                 .read(themeModeProvider.notifier)
@@ -480,7 +483,7 @@ class _GameScreenBody extends ConsumerWidget {
                                 ? colorScheme.primary
                                 : colorScheme.onSurface,
                           ),
-                          tooltip: 'Follow system',
+                          tooltip: l10n.followSystem,
                           onPressed: () {
                             ref
                                 .read(themeModeProvider.notifier)
@@ -534,7 +537,7 @@ class _GameScreenBody extends ConsumerWidget {
                   Icon(Icons.bar_chart, size: 20, color: colors.textMutedDark),
                   const SizedBox(width: 6),
                   Text(
-                    _difficultyName(state.difficulty),
+                    _difficultyName(l10n, state.difficulty),
                     style: TextStyle(
                       fontSize: 14,
                       color: colors.textSecondary,
@@ -548,7 +551,7 @@ class _GameScreenBody extends ConsumerWidget {
                           size: 20, color: colors.primary),
                       const SizedBox(width: 6),
                       Text(
-                        'No errors',
+                        l10n.noErrors,
                         style: TextStyle(
                           fontSize: 14,
                           color: colors.primary,
@@ -606,8 +609,8 @@ class _GameScreenBody extends ConsumerWidget {
                                   children: [
                                     _ActionButton(
                                       icon: Icons.undo,
-                                      label: 'Undo',
-                                      badge: _undoBadge(state),
+                                      label: l10n.undo,
+                                      badge: _undoBadge(l10n, state),
                                       actionScale: scale,
                                       onPressed: _undoEnabled(state)
                                           ? () =>
@@ -616,7 +619,7 @@ class _GameScreenBody extends ConsumerWidget {
                                     ),
                                     _ActionButton(
                                       icon: Icons.edit_note,
-                                      label: 'Notes',
+                                      label: l10n.notes,
                                       isActive: state.isNotesMode,
                                       actionScale: scale,
                                       onPressed: state.isWon
@@ -637,10 +640,10 @@ class _GameScreenBody extends ConsumerWidget {
                                     ),
                                     _ActionButton(
                                       icon: Icons.lightbulb_outline,
-                                      label: 'Hint',
+                                      label: l10n.hint,
                                       badge: state.freeHintsLeft > 0
                                           ? '${state.freeHintsLeft}'
-                                          : 'Ad',
+                                          : l10n.adBadge,
                                       actionScale: scale,
                                       onPressed: state.isWon
                                           ? null
@@ -678,10 +681,10 @@ class _GameScreenBody extends ConsumerWidget {
                                                       ScaffoldMessenger.of(
                                                               context)
                                                           .showSnackBar(
-                                                        const SnackBar(
+                                                        SnackBar(
                                                           content: Text(
-                                                              'Ad not available. Hint applied.'),
-                                                          duration: Duration(
+                                                              AppLocalizations.of(context)!.adNotAvailableHintApplied),
+                                                          duration: const Duration(
                                                               seconds: 2),
                                                         ),
                                                       );
@@ -711,18 +714,18 @@ class _GameScreenBody extends ConsumerWidget {
     );
   }
 
-  static String _difficultyName(Level level) {
+  static String _difficultyName(AppLocalizations l10n, Level level) {
     return switch (level) {
-      Level.easy => 'Easy',
-      Level.medium => 'Medium',
-      Level.hard => 'Hard',
-      Level.expert => 'Expert',
+      Level.easy => l10n.levelEasy,
+      Level.medium => l10n.levelMedium,
+      Level.hard => l10n.levelHard,
+      Level.expert => l10n.levelExpert,
     };
   }
 
-  static String _undoBadge(GameState state) {
+  static String _undoBadge(AppLocalizations l10n, GameState state) {
     if (state.undoRemaining > 0) return '${state.undoRemaining}';
-    return 'Ad';
+    return l10n.adBadge;
   }
 
   static bool _undoEnabled(GameState state) {
@@ -766,9 +769,9 @@ class _GameScreenBody extends ConsumerWidget {
           }
           notifier.onAppResumed();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Ad not available. Undo applied.'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.adNotAvailableUndoApplied),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -777,39 +780,40 @@ class _GameScreenBody extends ConsumerWidget {
   }
 
   static void _showNewGameDialog(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('New game'),
-        content: const Text('Choose difficulty:'),
+        title: Text(l10n.newGame),
+        content: Text(l10n.chooseDifficulty),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
               ref.read(gameProvider.notifier).newGame(Level.easy);
             },
-            child: const Text('Easy'),
+            child: Text(l10n.levelEasy),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
               ref.read(gameProvider.notifier).newGame(Level.medium);
             },
-            child: const Text('Medium'),
+            child: Text(l10n.levelMedium),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
               ref.read(gameProvider.notifier).newGame(Level.hard);
             },
-            child: const Text('Hard'),
+            child: Text(l10n.levelHard),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
               ref.read(gameProvider.notifier).newGame(Level.expert);
             },
-            child: const Text('Expert'),
+            child: Text(l10n.levelExpert),
           ),
         ],
       ),

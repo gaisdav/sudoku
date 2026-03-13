@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../ads_platform.dart';
+import '../l10n/app_localizations.dart';
 import '../config/ad_config.dart';
 
 /// Триггеры для межстраничной рекламы (см. план §4.3).
@@ -162,16 +165,38 @@ class InterstitialAdService {
       );
     }
 
+    // При ошибке или таймауте загрузки продолжаем как будто реклама была показана (закрываем диалог и вызываем onDone).
+    final loadCompleted = ValueNotifier<bool>(false);
+
+    void completeWithoutAd() {
+      if (loadCompleted.value) return;
+      loadCompleted.value = true;
+      if (context.mounted) Navigator.of(context).pop();
+      onDone();
+    }
+
+    final timeoutTimer = Timer(const Duration(seconds: 15), () {
+      debugPrint('InterstitialAd load timeout');
+      completeWithoutAd();
+    });
+
     InterstitialAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (InterstitialAd ad) {
+          if (loadCompleted.value) {
+            ad.dispose();
+            return;
+          }
           if (!context.mounted) {
             ad.dispose();
+            loadCompleted.value = true;
             onDone();
             return;
           }
+          loadCompleted.value = true;
+          timeoutTimer.cancel();
           Navigator.of(context).pop();
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdDismissedFullScreenContent: onAdDismissed,
@@ -181,8 +206,8 @@ class InterstitialAdService {
         },
         onAdFailedToLoad: (LoadAdError error) {
           debugPrint('InterstitialAd failed to load: $error');
-          if (context.mounted) Navigator.of(context).pop();
-          onDone();
+          timeoutTimer.cancel();
+          completeWithoutAd();
         },
       ),
     );
@@ -202,7 +227,7 @@ class InterstitialAdService {
           const SizedBox(width: 20),
           Flexible(
             child: Text(
-              'Loading ad…',
+              AppLocalizations.of(context)!.loadingAd,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w500,
               ),

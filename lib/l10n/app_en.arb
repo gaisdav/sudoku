@@ -1,0 +1,144 @@
+{
+  "@@locale": "en",
+  "appTitle": "Sudoku",
+  "menu": "Menu",
+  "backToMenu": "Back to menu",
+  "game": "Game",
+  "newGame": "New game",
+  "statistics": "Statistics",
+  "viewStatistics": "View statistics",
+  "settings": "Settings",
+  "levelEasy": "Easy",
+  "levelMedium": "Medium",
+  "levelHard": "Hard",
+  "levelExpert": "Expert",
+  "theme": "Theme",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "themeSystem": "System",
+  "accentColor": "Accent color",
+  "language": "Language",
+  "languageEnglish": "English",
+  "languageRussian": "Russian",
+  "languageSpanish": "Spanish",
+  "vibration": "Vibration",
+  "vibrationSubtitle": "Haptic feedback when tapping cells and buttons",
+  "continueGame": "Continue",
+  "savedTodayAt": "Saved today at {time}",
+  "@savedTodayAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "savedYesterdayAt": "Saved yesterday at {time}",
+  "@savedYesterdayAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "savedOn": "Saved {date}",
+  "@savedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "youWon": "You won!",
+  "congratulations": "Congratulations, you completed the puzzle.",
+  "timeLabel": "Time: {time}",
+  "@timeLabel": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "hintsUsedLabel": "Hints used: {count}",
+  "@hintsUsedLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "newRecord": "New record!",
+  "slowerThanBest": "{duration} slower than your best",
+  "@slowerThanBest": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "loadingAd": "Loading ad…",
+  "noErrorsMode": "No errors mode",
+  "noErrorsModeAlreadyOn": "No errors mode is already on for this session. Wrong cells are highlighted in red but the game will not end from too many errors.",
+  "noErrorsModeDescription": "In this mode wrong cells are highlighted in red but the game will not end from too many errors.\n\nTo enable it for this session, watch 3 ads in a row. The timer is paused.",
+  "watch3Ads": "Watch 3 ads",
+  "cancel": "Cancel",
+  "ok": "OK",
+  "adProgress": "Ad {current}/3…",
+  "@adProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      }
+    }
+  },
+  "gameOver": "Game over",
+  "gameOverDescription": "You have exceeded the allowed number of errors for this difficulty.",
+  "adNotAvailableSecondChance": "Ad not available. Second chance applied.",
+  "secondChanceAd": "Second chance (Ad)",
+  "restart": "Restart",
+  "noErrors": "No errors",
+  "undo": "Undo",
+  "notes": "Notes",
+  "hint": "Hint",
+  "adBadge": "Ad",
+  "adNotAvailableHintApplied": "Ad not available. Hint applied.",
+  "adNotAvailableUndoApplied": "Ad not available. Undo applied.",
+  "chooseDifficulty": "Choose difficulty:",
+  "totalWinsWithCount": "Total wins: {count}",
+  "@totalWinsWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bestTimeByDifficulty": "Best time by difficulty:",
+  "bestTimeLine": "{level}: {time} ({hints} hints)",
+  "@bestTimeLine": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "hints": {
+        "type": "int"
+      }
+    }
+  },
+  "bestTimeLineNoRecord": "{level}: —",
+  "@bestTimeLineNoRecord": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "resetStatisticsConfirmTitle": "Reset statistics?",
+  "resetStatisticsConfirmMessage": "All wins and best times will be cleared. This cannot be undone.",
+  "reset": "Reset",
+  "resetStatistics": "Reset statistics",
+  "lightTheme": "Light theme",
+  "darkTheme": "Dark theme",
+  "followSystem": "Follow system"
+}

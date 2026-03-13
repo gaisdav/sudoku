@@ -138,6 +138,24 @@ class GameStorage {
 
   static const _keyAccentIndex = 'accent_index';
   static const _keyVibrationEnabled = 'vibration_enabled';
+  static const _keyLocale = 'locale';
+
+  /// Saves app locale override. Pass empty string or null for system default.
+  static Future<void> saveLocale(String? languageCode) async {
+    if (languageCode == null || languageCode.isEmpty) {
+      await box.delete(_keyLocale);
+    } else {
+      await box.put(_keyLocale, languageCode);
+    }
+  }
+
+  /// Returns saved locale language code, or null for system default.
+  static String? loadLocale() {
+    final raw = box.get(_keyLocale);
+    if (raw == null) return null;
+    final s = raw.toString().trim();
+    return s.isEmpty ? null : s;
+  }
 
   /// Saves whether haptic/vibration feedback is enabled. Default true.
   static Future<void> saveVibrationEnabled(bool enabled) async {
