@@ -316,28 +316,32 @@ class _GameScreenBody extends ConsumerWidget {
               }
             },
             itemBuilder: (context) {
-              final themeMode = ref.watch(themeModeProvider);
-              final isDark = themeMode == ThemeMode.dark;
               return [
                 const PopupMenuItem(value: 'new', child: Text('New game')),
                 const PopupMenuItem(value: 'stats', child: Text('Statistics')),
                 PopupMenuItem<String>(
                   value: 'theme',
                   enabled: false,
-                  child: Row(
-                    children: [
-                      Text(
-                        'Dark theme',
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                      const Spacer(),
-                      Switch(
-                        value: isDark,
-                        onChanged: (_) {
-                          ref.read(themeModeProvider.notifier).toggle();
-                        },
-                      ),
-                    ],
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final themeMode = ref.watch(themeModeProvider);
+                      final isDark = themeMode == ThemeMode.dark;
+                      return Row(
+                        children: [
+                          Text(
+                            'Dark theme',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                          const Spacer(),
+                          Switch(
+                            value: isDark,
+                            onChanged: (_) {
+                              ref.read(themeModeProvider.notifier).toggle();
+                            },
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ];
