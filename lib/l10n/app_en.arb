@@ -8,6 +8,8 @@
   "statistics": "Statistics",
   "viewStatistics": "View statistics",
   "settings": "Settings",
+  "tabHome": "Home",
+  "tabInstructions": "Instructions",
   "levelEasy": "Easy",
   "levelMedium": "Medium",
   "levelHard": "Hard",

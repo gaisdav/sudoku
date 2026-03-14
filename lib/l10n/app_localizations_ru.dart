@@ -33,6 +33,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settings => 'Настройки';
 
   @override
+  String get tabHome => 'Главная';
+
+  @override
+  String get tabInstructions => 'Инструкция';
+
+  @override
   String get levelEasy => 'Лёгкий';
 
   @override

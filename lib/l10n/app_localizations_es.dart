@@ -33,6 +33,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settings => 'Ajustes';
 
   @override
+  String get tabHome => 'Inicio';
+
+  @override
+  String get tabInstructions => 'Instrucciones';
+
+  @override
   String get levelEasy => 'Fácil';
 
   @override

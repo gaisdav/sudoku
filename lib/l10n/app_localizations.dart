@@ -148,6 +148,18 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settings;
 
+  /// No description provided for @tabHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get tabHome;
+
+  /// No description provided for @tabInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Instructions'**
+  String get tabInstructions;
+
   /// No description provided for @levelEasy.
   ///
   /// In en, this message translates to:

@@ -9,7 +9,6 @@ import '../providers/theme_mode_provider.dart';
 import '../providers/vibration_enabled_provider.dart';
 import '../services/game_storage.dart';
 import '../services/interstitial_ad_service.dart';
-import '../widgets/banner_ad_widget.dart';
 import '../widgets/stats_dialog.dart' show formatDuration, showStatsDialog;
 import 'game_screen.dart';
 
@@ -20,7 +19,11 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
+enum _HomeTab { main, instructions, settings }
+
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  _HomeTab _selectedTab = _HomeTab.main;
+
   void _openNewGameAndRefreshOnReturn(Level level) {
     InterstitialAdService.tryShowInterstitial(
       context,
@@ -48,105 +51,236 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         title: Text(l10n.appTitle),
       ),
       body: SafeArea(
-        child: Column(
+        child: IndexedStack(
+          index: _selectedTab.index,
           children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                children: [
-                  _SectionBlock(
-                    title: l10n.game,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _ContinueRow(
-                          hasSavedGame: hasSavedGame,
-                          onContinue: () {
-                            InterstitialAdService.tryShowInterstitial(
-                              context,
-                              InterstitialTrigger.continueGame,
-                              onDone: () {
-                                if (!context.mounted) return;
-                                Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => const GameScreen(continueLast: true),
-                                  ),
-                                ).then((_) {
-                                  if (mounted) setState(() {});
-                                });
-                              },
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.newGame,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: [
-                            _DifficultyChip(
-                              label: l10n.levelEasy,
-                              onTap: () => _openNewGameAndRefreshOnReturn(Level.easy),
-                            ),
-                            _DifficultyChip(
-                              label: l10n.levelMedium,
-                              onTap: () => _openNewGameAndRefreshOnReturn(Level.medium),
-                            ),
-                            _DifficultyChip(
-                              label: l10n.levelHard,
-                              onTap: () => _openNewGameAndRefreshOnReturn(Level.hard),
-                            ),
-                            _DifficultyChip(
-                              label: l10n.levelExpert,
-                              onTap: () => _openNewGameAndRefreshOnReturn(Level.expert),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 32),
-                  _SectionBlock(
-                    title: l10n.statistics,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: FilledButton.tonalIcon(
-                        onPressed: () {
-                          InterstitialAdService.tryShowInterstitial(
-                            context,
-                            InterstitialTrigger.viewStatistics,
-                            onDone: () => showStatsDialog(context),
-                          );
-                        },
-                        icon: const Icon(Icons.bar_chart),
-                        label: Text(l10n.viewStatistics),
-                      ),
-                    ),
-                  ),
-                  const Divider(height: 32),
-                  _SectionBlock(
-                    title: l10n.settings,
-                    child: const Padding(
-                      padding: EdgeInsets.only(top: 4),
-                      child: _SettingsSection(),
-                    ),
-                  ),
-                ],
-              ),
+            _MainTabContent(
+              hasSavedGame: hasSavedGame,
+              onRefresh: () => setState(() {}),
+              onOpenNewGame: _openNewGameAndRefreshOnReturn,
             ),
-            const BannerAdWidget(),
+            const _InstructionsTabContent(),
+            const _SettingsTabContent(),
+          ],
+        ),
+      ),
+      bottomNavigationBar: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+        child: _CompactNavBar(
+          currentIndex: _selectedTab.index,
+          onTap: (index) => setState(() => _selectedTab = _HomeTab.values[index]),
+          items: [
+            _NavBarItem(icon: Icons.home_rounded, selectedIcon: Icons.home_rounded, label: l10n.tabHome),
+            _NavBarItem(icon: Icons.menu_book_rounded, selectedIcon: Icons.menu_book_rounded, label: l10n.tabInstructions),
+            _NavBarItem(icon: Icons.settings_rounded, selectedIcon: Icons.settings_rounded, label: l10n.settings),
           ],
         ),
       ),
     );
   }
+}
 
+class _NavBarItem {
+  const _NavBarItem({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+  });
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+}
+
+class _CompactNavBar extends StatelessWidget {
+  const _CompactNavBar({
+    required this.currentIndex,
+    required this.onTap,
+    required this.items,
+  });
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+  final List<_NavBarItem> items;
+
+  static const double _iconSize = 22;
+  static const double _iconToLabelGap = 2;
+  static const double _verticalPadding = 6;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final selectedColor = colorScheme.primary;
+    final unselectedColor = colorScheme.onSurfaceVariant;
+    final labelStyle = (theme.textTheme.labelSmall ?? const TextStyle()).copyWith(fontSize: 11);
+
+    return Material(
+      color: colorScheme.surfaceContainerHighest,
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 50,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(items.length, (index) {
+              final item = items[index];
+              final selected = index == currentIndex;
+              final color = selected ? selectedColor : unselectedColor;
+              final labelStyleWithColor = labelStyle.copyWith(
+                color: color,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+              );
+              return Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => onTap(index),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: _verticalPadding),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            selected ? item.selectedIcon : item.icon,
+                            size: _iconSize,
+                            color: color,
+                          ),
+                          SizedBox(height: _iconToLabelGap),
+                          Text(item.label, style: labelStyleWithColor),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MainTabContent extends StatelessWidget {
+  const _MainTabContent({
+    required this.hasSavedGame,
+    required this.onRefresh,
+    required this.onOpenNewGame,
+  });
+
+  final bool hasSavedGame;
+  final VoidCallback onRefresh;
+  final void Function(Level level) onOpenNewGame;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      children: [
+        _SectionBlock(
+          title: l10n.game,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ContinueRow(
+                hasSavedGame: hasSavedGame,
+                onContinue: () {
+                  InterstitialAdService.tryShowInterstitial(
+                    context,
+                    InterstitialTrigger.continueGame,
+                    onDone: () {
+                      if (!context.mounted) return;
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const GameScreen(continueLast: true),
+                        ),
+                      ).then((_) {
+                        if (context.mounted) onRefresh();
+                      });
+                    },
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.newGame,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _DifficultyChip(
+                    label: l10n.levelEasy,
+                    onTap: () => onOpenNewGame(Level.easy),
+                  ),
+                  _DifficultyChip(
+                    label: l10n.levelMedium,
+                    onTap: () => onOpenNewGame(Level.medium),
+                  ),
+                  _DifficultyChip(
+                    label: l10n.levelHard,
+                    onTap: () => onOpenNewGame(Level.hard),
+                  ),
+                  _DifficultyChip(
+                    label: l10n.levelExpert,
+                    onTap: () => onOpenNewGame(Level.expert),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 32),
+        _SectionBlock(
+          title: l10n.statistics,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: FilledButton.tonalIcon(
+              onPressed: () {
+                InterstitialAdService.tryShowInterstitial(
+                  context,
+                  InterstitialTrigger.viewStatistics,
+                  onDone: () => showStatsDialog(context),
+                );
+              },
+              icon: const Icon(Icons.bar_chart),
+              label: Text(l10n.viewStatistics),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InstructionsTabContent extends StatelessWidget {
+  const _InstructionsTabContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: SizedBox.shrink(),
+    );
+  }
+}
+
+class _SettingsTabContent extends StatelessWidget {
+  const _SettingsTabContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      children: const [
+        _SettingsSection(),
+      ],
+    );
+  }
 }
 
 class _SettingsSection extends ConsumerWidget {
