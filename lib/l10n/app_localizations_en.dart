@@ -39,6 +39,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tabInstructions => 'Instructions';
 
   @override
+  String get instructionsTitle => 'How to play Sudoku';
+
+  @override
+  String get instructionsBody =>
+      'Sudoku is played on a 9×9 grid divided into nine 3×3 boxes.\n\nGoal: Fill the grid so that every row, every column, and every 3×3 box contains the digits 1 through 9, with no repeats.\n\nRules:\n• Each row must contain 1–9 exactly once.\n• Each column must contain 1–9 exactly once.\n• Each 3×3 box must contain 1–9 exactly once.\n\nSome cells are already filled; the rest you fill in using logic. There is only one correct solution for each puzzle.';
+
+  @override
   String get levelEasy => 'Easy';
 
   @override

@@ -10,6 +10,7 @@ import '../config/ad_config.dart';
 /// Триггеры для межстраничной рекламы (см. план §4.3).
 enum InterstitialTrigger {
   viewStatistics,
+  viewInstructions,
   continueGame,
   startNewGame,
   newGameInHeader,
@@ -86,6 +87,7 @@ class InterstitialAdService {
     bool shouldShow = false;
     switch (trigger) {
       case InterstitialTrigger.viewStatistics:
+      case InterstitialTrigger.viewInstructions:
         shouldShow = canShowByTime && canShowByRestartTime;
         break;
       case InterstitialTrigger.continueGame:

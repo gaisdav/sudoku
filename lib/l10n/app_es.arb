@@ -10,6 +10,8 @@
   "settings": "Ajustes",
   "tabHome": "Inicio",
   "tabInstructions": "Instrucciones",
+  "instructionsTitle": "Cómo jugar al Sudoku",
+  "instructionsBody": "El Sudoku se juega en una cuadrícula de 9×9 dividida en nueve bloques de 3×3.\n\nObjetivo: Rellena la cuadrícula de modo que cada fila, cada columna y cada bloque 3×3 contenga los dígitos del 1 al 9, sin repetir.\n\nReglas:\n• Cada fila debe contener 1–9 exactamente una vez.\n• Cada columna debe contener 1–9 exactamente una vez.\n• Cada bloque 3×3 debe contener 1–9 exactamente una vez.\n\nAlgunas celdas vienen ya rellenadas; el resto se rellena con lógica. Cada puzzle tiene una única solución correcta.",
   "levelEasy": "Fácil",
   "levelMedium": "Medio",
   "levelHard": "Difícil",

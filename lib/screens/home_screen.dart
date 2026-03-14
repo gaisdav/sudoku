@@ -9,6 +9,7 @@ import '../providers/theme_mode_provider.dart';
 import '../providers/vibration_enabled_provider.dart';
 import '../services/game_storage.dart';
 import '../services/interstitial_ad_service.dart';
+import '../widgets/banner_ad_widget.dart';
 import '../widgets/stats_dialog.dart' show formatDuration, showStatsDialog;
 import 'game_screen.dart';
 
@@ -68,7 +69,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
         child: _CompactNavBar(
           currentIndex: _selectedTab.index,
-          onTap: (index) => setState(() => _selectedTab = _HomeTab.values[index]),
+          onTap: (index) {
+            if (index == _HomeTab.instructions.index) {
+              InterstitialAdService.tryShowInterstitial(
+                context,
+                InterstitialTrigger.viewInstructions,
+                onDone: () {
+                  if (context.mounted) setState(() => _selectedTab = _HomeTab.instructions);
+                },
+              );
+            } else {
+              setState(() => _selectedTab = _HomeTab.values[index]);
+            }
+          },
           items: [
             _NavBarItem(icon: Icons.home_rounded, selectedIcon: Icons.home_rounded, label: l10n.tabHome),
             _NavBarItem(icon: Icons.menu_book_rounded, selectedIcon: Icons.menu_book_rounded, label: l10n.tabInstructions),
@@ -263,8 +276,31 @@ class _InstructionsTabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: SizedBox.shrink(),
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      children: [
+        Text(
+          l10n.instructionsTitle,
+          style: textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          l10n.instructionsBody,
+          style: textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurface,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 24),
+        const BannerAdWidget(collapsible: false),
+      ],
     );
   }
 }
@@ -355,9 +391,9 @@ class _SettingsSection extends ConsumerWidget {
           ),
           items: [
             DropdownMenuItem(value: 'system', child: Text(l10n.themeSystem)),
-            DropdownMenuItem(value: 'en', child: Text(l10n.languageEnglish)),
-            DropdownMenuItem(value: 'ru', child: Text(l10n.languageRussian)),
-            DropdownMenuItem(value: 'es', child: Text(l10n.languageSpanish)),
+            DropdownMenuItem(value: 'en', child: const Text('English')),
+            DropdownMenuItem(value: 'ru', child: const Text('Русский')),
+            DropdownMenuItem(value: 'es', child: const Text('Español')),
           ],
           onChanged: (value) {
             if (value == null) return;
