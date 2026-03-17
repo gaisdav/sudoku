@@ -158,7 +158,7 @@ class _CompactNavBar extends StatelessWidget {
                             size: _iconSize,
                             color: color,
                           ),
-                          SizedBox(height: _iconToLabelGap),
+                          const SizedBox(height: _iconToLabelGap),
                           Text(item.label, style: labelStyleWithColor),
                         ],
                       ),
@@ -280,25 +280,31 @@ class _InstructionsTabContent extends StatelessWidget {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          l10n.instructionsTitle,
-          style: textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: theme.colorScheme.onSurface,
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            children: [
+              Text(
+                l10n.instructionsTitle,
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.instructionsBody,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                  height: 1.5,
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 12),
-        Text(
-          l10n.instructionsBody,
-          style: textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 24),
         const BannerAdWidget(collapsible: false),
       ],
     );
@@ -383,7 +389,7 @@ class _SettingsSection extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: ref.watch(localeProvider)?.languageCode ?? 'system',
+          initialValue: ref.watch(localeProvider)?.languageCode ?? 'system',
           decoration: const InputDecoration(
             isDense: true,
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -391,9 +397,9 @@ class _SettingsSection extends ConsumerWidget {
           ),
           items: [
             DropdownMenuItem(value: 'system', child: Text(l10n.themeSystem)),
-            DropdownMenuItem(value: 'en', child: const Text('English')),
-            DropdownMenuItem(value: 'ru', child: const Text('Русский')),
-            DropdownMenuItem(value: 'es', child: const Text('Español')),
+            const DropdownMenuItem(value: 'en', child: Text('English')),
+            const DropdownMenuItem(value: 'ru', child: Text('Русский')),
+            const DropdownMenuItem(value: 'es', child: Text('Español')),
           ],
           onChanged: (value) {
             if (value == null) return;

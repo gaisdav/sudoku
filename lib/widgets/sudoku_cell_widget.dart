@@ -1,4 +1,3 @@
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -53,7 +52,8 @@ class SudokuCellWidget extends StatelessWidget {
     if (isConflictFlash) {
       bg = colors.error.withValues(alpha: 0.5);
     } else if (showWrongHighlight && cell.isWrong) {
-      bg = colors.error.withValues(alpha: 0.35);
+      // Отдельный фон для ошибочных ячеек, чтобы они отличались от верных при любом акценте (например Pink).
+      bg = colors.errorLight;
     } else if (isJustCompleted) {
       // Приоритет: вспышка «область заполнена» поверх выбора и строки/столбца/блока
       bg = colors.successLight;
@@ -92,7 +92,11 @@ class SudokuCellWidget extends StatelessWidget {
             decoration: BoxDecoration(
               color: bg,
               border: Border.all(
-                color: isSelected ? colors.primary : colors.border,
+                color: isSelected
+                    ? colors.primary
+                    : (showWrongHighlight && cell.isWrong)
+                        ? colors.error
+                        : colors.border,
                 width: isSelected ? 2 : 1,
               ),
               borderRadius: BorderRadius.circular(4),

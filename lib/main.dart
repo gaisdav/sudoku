@@ -32,6 +32,8 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  // Скрываем панель навигации и линию жестов внизу экрана (как в полноэкранных играх)
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   runApp(const ProviderScope(child: SudokuApp()));
 }
 

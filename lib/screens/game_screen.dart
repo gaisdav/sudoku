@@ -92,7 +92,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 prevBest == null || next.elapsedSeconds <= prevBest;
             final recordText = isNewRecord
                 ? l10n.newRecord
-                : l10n.slowerThanBest(formatDuration(next.elapsedSeconds - prevBest));
+                : l10n.slowerThanBest(
+                    formatDuration(next.elapsedSeconds - prevBest));
             return AlertDialog(
               title: Text(l10n.youWon),
               content: Column(
@@ -602,97 +603,128 @@ class _GameScreenBody extends ConsumerWidget {
                               Padding(
                                 padding: EdgeInsets.symmetric(
                                     horizontal: outerH, vertical: 4),
-                                child: Wrap(
-                                  alignment: WrapAlignment.center,
-                                  spacing: gap,
-                                  runSpacing: gap,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    _ActionButton(
-                                      icon: Icons.undo,
-                                      label: l10n.undo,
-                                      badge: _undoBadge(l10n, state),
-                                      actionScale: scale,
-                                      onPressed: _undoEnabled(state)
-                                          ? () =>
-                                              _onUndoTap(context, ref, state)
-                                          : null,
+                                    Flexible(
+                                      child: Tooltip(
+                                        message: l10n.undo,
+                                        child: _ActionButton(
+                                          icon: state.undoStack.isNotEmpty &&
+                                                  state.undoRemaining == 0
+                                              ? Icons.campaign
+                                              : Icons.undo,
+                                          label: l10n.undo,
+                                          badge: state.undoRemaining > 0
+                                              ? '${state.undoRemaining}'
+                                              : null,
+                                          actionScale: scale,
+                                          onPressed: _undoEnabled(state)
+                                              ? () => _onUndoTap(
+                                                  context, ref, state)
+                                              : null,
+                                        ),
+                                      ),
                                     ),
-                                    _ActionButton(
-                                      icon: Icons.edit_note,
-                                      label: l10n.notes,
-                                      isActive: state.isNotesMode,
-                                      actionScale: scale,
-                                      onPressed: state.isWon
-                                          ? null
-                                          : () {
-                                              hapticSelection();
-                                              notifier.onAppPaused();
-                                              InterstitialAdService
-                                                  .tryShowInterstitial(
-                                                context,
-                                                InterstitialTrigger.notes,
-                                                onDone: () {
-                                                  notifier.onAppResumed();
-                                                  notifier.toggleNotesMode();
-                                                },
-                                              );
-                                            },
-                                    ),
-                                    _ActionButton(
-                                      icon: Icons.lightbulb_outline,
-                                      label: l10n.hint,
-                                      badge: state.freeHintsLeft > 0
-                                          ? '${state.freeHintsLeft}'
-                                          : l10n.adBadge,
-                                      actionScale: scale,
-                                      onPressed: state.isWon
-                                          ? null
-                                          : () async {
-                                              hapticLightImpact();
-                                              final applied =
-                                                  notifier.applyHint();
-                                              if (!applied) {
-                                                if (!context.mounted) return;
-                                                notifier.onAppPaused();
-                                                showDialog<void>(
-                                                  context: context,
-                                                  barrierDismissible: false,
-                                                  builder: (_) =>
-                                                      const _LoadingAdDialog(),
-                                                );
-                                                showRewardedAd(
-                                                  context,
-                                                  onAdReadyToShow: () {
-                                                    if (context.mounted)
-                                                      Navigator.of(context)
-                                                          .pop();
-                                                  },
-                                                  onRewarded: () => notifier
-                                                      .applyHintFromAd(),
-                                                  onDismissed: () =>
-                                                      notifier.onAppResumed(),
-                                                  onNotAvailable: () {
-                                                    if (context.mounted) {
-                                                      Navigator.of(context)
-                                                          .pop();
-                                                      notifier
-                                                          .applyHintFromAd();
+                                    SizedBox(width: gap),
+                                    Flexible(
+                                      child: Tooltip(
+                                        message: l10n.notes,
+                                        child: _ActionButton(
+                                          icon: Icons.edit_note,
+                                          label: l10n.notes,
+                                          isActive: state.isNotesMode,
+                                          actionScale: scale,
+                                          onPressed: state.isWon
+                                              ? null
+                                              : () {
+                                                  hapticSelection();
+                                                  notifier.onAppPaused();
+                                                  InterstitialAdService
+                                                      .tryShowInterstitial(
+                                                    context,
+                                                    InterstitialTrigger.notes,
+                                                    onDone: () {
                                                       notifier.onAppResumed();
-                                                      ScaffoldMessenger.of(
-                                                              context)
-                                                          .showSnackBar(
-                                                        SnackBar(
-                                                          content: Text(
-                                                              AppLocalizations.of(context)!.adNotAvailableHintApplied),
-                                                          duration: const Duration(
-                                                              seconds: 2),
-                                                        ),
-                                                      );
-                                                    }
-                                                  },
-                                                );
-                                              }
-                                            },
+                                                      notifier
+                                                          .toggleNotesMode();
+                                                    },
+                                                  );
+                                                },
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: gap),
+                                    Flexible(
+                                      child: Tooltip(
+                                        message: l10n.hint,
+                                        child: _ActionButton(
+                                          icon: state.freeHintsLeft == 0
+                                              ? Icons.campaign
+                                              : Icons.lightbulb_outline,
+                                          label: l10n.hint,
+                                          badge: state.freeHintsLeft > 0
+                                              ? '${state.freeHintsLeft}'
+                                              : null,
+                                          actionScale: scale,
+                                          onPressed: state.isWon
+                                              ? null
+                                              : () async {
+                                                  hapticLightImpact();
+                                                  final applied =
+                                                      notifier.applyHint();
+                                                  if (!applied) {
+                                                    if (!context.mounted)
+                                                      return;
+                                                    notifier.onAppPaused();
+                                                    showDialog<void>(
+                                                      context: context,
+                                                      barrierDismissible: false,
+                                                      builder: (_) =>
+                                                          const _LoadingAdDialog(),
+                                                    );
+                                                    showRewardedAd(
+                                                      context,
+                                                      onAdReadyToShow: () {
+                                                        if (context.mounted) {
+                                                          Navigator.of(context)
+                                                              .pop();
+                                                        }
+                                                      },
+                                                      onRewarded: () => notifier
+                                                          .applyHintFromAd(),
+                                                      onDismissed: () =>
+                                                          notifier
+                                                              .onAppResumed(),
+                                                      onNotAvailable: () {
+                                                        if (context.mounted) {
+                                                          Navigator.of(context)
+                                                              .pop();
+                                                          notifier
+                                                              .applyHintFromAd();
+                                                          notifier
+                                                              .onAppResumed();
+                                                          ScaffoldMessenger.of(
+                                                                  context)
+                                                              .showSnackBar(
+                                                            SnackBar(
+                                                              content: Text(
+                                                                  AppLocalizations.of(
+                                                                          context)!
+                                                                      .adNotAvailableHintApplied),
+                                                              duration:
+                                                                  const Duration(
+                                                                      seconds:
+                                                                          2),
+                                                            ),
+                                                          );
+                                                        }
+                                                      },
+                                                    );
+                                                  }
+                                                },
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -721,11 +753,6 @@ class _GameScreenBody extends ConsumerWidget {
       Level.hard => l10n.levelHard,
       Level.expert => l10n.levelExpert,
     };
-  }
-
-  static String _undoBadge(AppLocalizations l10n, GameState state) {
-    if (state.undoRemaining > 0) return '${state.undoRemaining}';
-    return l10n.adBadge;
   }
 
   static bool _undoEnabled(GameState state) {
@@ -770,7 +797,8 @@ class _GameScreenBody extends ConsumerWidget {
           notifier.onAppResumed();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(AppLocalizations.of(context)!.adNotAvailableUndoApplied),
+              content:
+                  Text(AppLocalizations.of(context)!.adNotAvailableUndoApplied),
               duration: const Duration(seconds: 2),
             ),
           );
@@ -893,14 +921,18 @@ class _ActionButton extends StatelessWidget {
                 ),
               ],
               SizedBox(width: labelGap),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: fontSize,
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                  color: active
-                      ? colors.primary
-                      : (enabled ? colors.textSecondary : colors.disabled),
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                    color: active
+                        ? colors.primary
+                        : (enabled ? colors.textSecondary : colors.disabled),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ),
             ],
