@@ -253,13 +253,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get streak => 'Racha';
 
   @override
-  String currentStreakDays(int count) {
-    return 'Actual: $count días';
-  }
+  String get streakCurrentTitle => 'Actual';
 
   @override
-  String bestStreakDays(int count) {
-    return 'Mejor: $count días';
+  String get streakBestTitle => 'Mejor';
+
+  @override
+  String streakDaysCount(int count) {
+    return '$count días';
   }
 
   @override

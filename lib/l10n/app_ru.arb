@@ -71,16 +71,10 @@
   "viewProgress": "Смотреть прогресс",
   "activityCalendar": "Календарь активности",
   "streak": "Серия",
-  "currentStreakDays": "Текущая: {count} дн.",
-  "@currentStreakDays": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "bestStreakDays": "Лучшая: {count} дн.",
-  "@bestStreakDays": {
+  "streakCurrentTitle": "Текущая",
+  "streakBestTitle": "Лучшая",
+  "streakDaysCount": "{count} дн.",
+  "@streakDaysCount": {
     "placeholders": {
       "count": {
         "type": "int"

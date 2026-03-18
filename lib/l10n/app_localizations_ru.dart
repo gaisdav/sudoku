@@ -253,13 +253,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get streak => 'Серия';
 
   @override
-  String currentStreakDays(int count) {
-    return 'Текущая: $count дн.';
-  }
+  String get streakCurrentTitle => 'Текущая';
 
   @override
-  String bestStreakDays(int count) {
-    return 'Лучшая: $count дн.';
+  String get streakBestTitle => 'Лучшая';
+
+  @override
+  String streakDaysCount(int count) {
+    return '$count дн.';
   }
 
   @override

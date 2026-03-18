@@ -526,17 +526,23 @@ abstract class AppLocalizations {
   /// **'Streak'**
   String get streak;
 
-  /// No description provided for @currentStreakDays.
+  /// No description provided for @streakCurrentTitle.
   ///
   /// In en, this message translates to:
-  /// **'Current: {count} days'**
-  String currentStreakDays(int count);
+  /// **'Current'**
+  String get streakCurrentTitle;
 
-  /// No description provided for @bestStreakDays.
+  /// No description provided for @streakBestTitle.
   ///
   /// In en, this message translates to:
-  /// **'Best: {count} days'**
-  String bestStreakDays(int count);
+  /// **'Best'**
+  String get streakBestTitle;
+
+  /// No description provided for @streakDaysCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days'**
+  String streakDaysCount(int count);
 
   /// No description provided for @streakHint.
   ///

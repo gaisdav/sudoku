@@ -557,7 +557,8 @@ class _StreakBlock extends ConsumerWidget {
               Expanded(
                 child: _StreakChip(
                   icon: Icons.local_fire_department,
-                  label: l10n.currentStreakDays(current),
+                  title: l10n.streakCurrentTitle,
+                  value: l10n.streakDaysCount(current),
                   colorScheme: colorScheme,
                 ),
               ),
@@ -565,7 +566,8 @@ class _StreakBlock extends ConsumerWidget {
               Expanded(
                 child: _StreakChip(
                   icon: Icons.emoji_events,
-                  label: l10n.bestStreakDays(best),
+                  title: l10n.streakBestTitle,
+                  value: l10n.streakDaysCount(best),
                   colorScheme: colorScheme,
                 ),
               ),
@@ -587,34 +589,54 @@ class _StreakBlock extends ConsumerWidget {
 class _StreakChip extends StatelessWidget {
   const _StreakChip({
     required this.icon,
-    required this.label,
+    required this.title,
+    required this.value,
     required this.colorScheme,
   });
 
   final IconData icon;
-  final String label;
+  final String title;
+  final String value;
   final ColorScheme colorScheme;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(icon, size: 24, color: colorScheme.primary),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Expanded(
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurface,
-              ),
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  value,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ],

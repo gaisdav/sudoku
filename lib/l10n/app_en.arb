@@ -154,16 +154,10 @@
   "viewProgress": "View progress",
   "activityCalendar": "Activity calendar",
   "streak": "Streak",
-  "currentStreakDays": "Current: {count} days",
-  "@currentStreakDays": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "bestStreakDays": "Best: {count} days",
-  "@bestStreakDays": {
+  "streakCurrentTitle": "Current",
+  "streakBestTitle": "Best",
+  "streakDaysCount": "{count} days",
+  "@streakDaysCount": {
     "placeholders": {
       "count": {
         "type": "int"

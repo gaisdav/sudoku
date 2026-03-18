@@ -71,16 +71,10 @@
   "viewProgress": "Ver progreso",
   "activityCalendar": "Calendario de actividad",
   "streak": "Racha",
-  "currentStreakDays": "Actual: {count} días",
-  "@currentStreakDays": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "bestStreakDays": "Mejor: {count} días",
-  "@bestStreakDays": {
+  "streakCurrentTitle": "Actual",
+  "streakBestTitle": "Mejor",
+  "streakDaysCount": "{count} días",
+  "@streakDaysCount": {
     "placeholders": {
       "count": {
         "type": "int"
