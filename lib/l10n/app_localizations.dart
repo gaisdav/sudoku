@@ -310,6 +310,12 @@ abstract class AppLocalizations {
   /// **'Hints used: {count}'**
   String hintsUsedLabel(int count);
 
+  /// No description provided for @victoryDifficulty.
+  ///
+  /// In en, this message translates to:
+  /// **'Difficulty: {level}'**
+  String victoryDifficulty(String level);
+
   /// No description provided for @newRecord.
   ///
   /// In en, this message translates to:
@@ -633,6 +639,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Follow system'**
   String get followSystem;
+
+  /// No description provided for @timedModeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Time attack'**
+  String get timedModeTitle;
+
+  /// No description provided for @timedModeHomeButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Time attack'**
+  String get timedModeHomeButton;
+
+  /// No description provided for @timedModeInfoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish the puzzle before the timer reaches zero. While playing, tap the timer icon in the app bar to watch an ad and add 2 minutes (you can do this as many times as you want). This mode uses a separate save from the main game.\n\nCountdown: Easy 15 min · Medium 12 · Hard 8 · Expert 5. Extra +2 min per ad.'**
+  String get timedModeInfoBody;
+
+  /// No description provided for @timedContinueDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Time attack'**
+  String get timedContinueDialogTitle;
+
+  /// No description provided for @timedContinueDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue your saved game or start a new one?'**
+  String get timedContinueDialogBody;
+
+  /// No description provided for @timedStartNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New game'**
+  String get timedStartNew;
+
+  /// No description provided for @timeUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Time\'s up'**
+  String get timeUpTitle;
+
+  /// No description provided for @timeUpDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The countdown reached zero. This game is over.'**
+  String get timeUpDescription;
+
+  /// No description provided for @timedVictoryStartingMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting time: {minutes} min'**
+  String timedVictoryStartingMinutes(int minutes);
+
+  /// No description provided for @timedVictoryExtendedMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Extended with ads: +{minutes} min'**
+  String timedVictoryExtendedMinutes(int minutes);
+
+  /// No description provided for @timedAddTimeAd.
+  ///
+  /// In en, this message translates to:
+  /// **'+2 min (watch ad)'**
+  String get timedAddTimeAd;
+
+  /// No description provided for @thirtySecondsLeftWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'30 seconds left!'**
+  String get thirtySecondsLeftWarning;
+
+  /// No description provided for @adNotAvailableTimedBonus.
+  ///
+  /// In en, this message translates to:
+  /// **'Ad not available. Time not added.'**
+  String get adNotAvailableTimedBonus;
+
+  /// No description provided for @timedSaveInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load time attack save.'**
+  String get timedSaveInvalid;
 }
 
 class _AppLocalizationsDelegate

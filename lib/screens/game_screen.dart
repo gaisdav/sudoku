@@ -22,6 +22,9 @@ class GameScreen extends ConsumerStatefulWidget {
     this.continueLast = false,
     this.newGameLevel,
     this.dailyChallenge = false,
+    this.continueTimed = false,
+    this.timedNewGame = false,
+    this.timedNewLevel,
   });
 
   /// Open and restore saved game (from home "Continue").
@@ -32,6 +35,13 @@ class GameScreen extends ConsumerStatefulWidget {
 
   /// Daily challenge (separate save slot; difficulty from settings).
   final bool dailyChallenge;
+
+  /// Continue time-attack save (separate slot).
+  final bool continueTimed;
+
+  /// Start new time-attack game ([timedNewLevel] required).
+  final bool timedNewGame;
+  final Level? timedNewLevel;
 
   @override
   ConsumerState<GameScreen> createState() => _GameScreenState();
@@ -47,7 +57,21 @@ class _GameScreenState extends ConsumerState<GameScreen>
     // Start/restore game after first frame — must not modify provider during build/initState.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final notifier = ref.read(gameProvider.notifier);
-      if (widget.dailyChallenge) {
+      if (widget.continueTimed) {
+        if (!notifier.continueTimedGame() && context.mounted) {
+          final loc = AppLocalizations.of(context);
+          if (loc != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(loc.timedSaveInvalid)),
+            );
+          }
+          Navigator.of(context).pop();
+        }
+        return;
+      }
+      if (widget.timedNewGame && widget.timedNewLevel != null) {
+        notifier.startTimedGame(widget.timedNewLevel!);
+      } else if (widget.dailyChallenge) {
         notifier.startDailyChallenge();
       } else if (widget.continueLast) {
         notifier.ensureGameStarted();
@@ -86,10 +110,57 @@ class _GameScreenState extends ConsumerState<GameScreen>
   @override
   Widget build(BuildContext context) {
     ref.listen<GameState>(gameProvider, (prev, next) {
+      if (next.isTimedOut && prev?.isTimedOut != true) {
+        vibrateOnGameOver();
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) {
+            final l10n = AppLocalizations.of(context)!;
+            final notifier = ref.read(gameProvider.notifier);
+            return AlertDialog(
+              title: Text(l10n.timeUpTitle),
+              content: Text(l10n.timeUpDescription),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    notifier.clearTimedSessionForMenu();
+                    if (context.mounted) Navigator.of(context).pop();
+                  },
+                  child: Text(l10n.backToMenu),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    notifier.restartTimedGameAfterTimeout();
+                  },
+                  child: Text(l10n.newGame),
+                ),
+              ],
+            );
+          },
+        );
+      }
+      if (next.isTimedMode &&
+          !next.isWon &&
+          !next.isTimedOut &&
+          prev != null &&
+          prev.timedRemainingSeconds == 31 &&
+          next.timedRemainingSeconds == 30) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.thirtySecondsLeftWarning),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
       if (next.isWon && prev?.isWon != true) {
         final notifier = ref.read(gameProvider.notifier);
         notifier.pauseTimer();
         final isDaily = notifier.isDailySession;
+        final isTimed = next.isTimedMode;
         showDialog<void>(
           context: context,
           barrierDismissible: false,
@@ -102,6 +173,81 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 ? l10n.newRecord
                 : l10n.slowerThanBest(
                     formatDuration(next.elapsedSeconds - prevBest));
+            final levelLabel = switch (next.difficulty) {
+              Level.easy => l10n.levelEasy,
+              Level.medium => l10n.levelMedium,
+              Level.hard => l10n.levelHard,
+              Level.expert => l10n.levelExpert,
+            };
+            if (isTimed) {
+              final startMin = next.timedInitialLimitSeconds ~/ 60;
+              final bonusMin = next.timedBonusSecondsAdded ~/ 60;
+              return AlertDialog(
+                title: Text(l10n.youWon),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.congratulations),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.victoryDifficulty(levelLabel),
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.timedVictoryStartingMinutes(startMin),
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    if (bonusMin > 0) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.timedVictoryExtendedMinutes(bonusMin),
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.timeLabel(formatDuration(next.elapsedSeconds)),
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.hintsUsedLabel(next.hintsUsedThisGame),
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      InterstitialAdService.tryShowInterstitial(
+                        context,
+                        InterstitialTrigger.backToMenu,
+                        onDone: () {
+                          Navigator.of(ctx).pop();
+                          Navigator.of(context).pop();
+                        },
+                      );
+                    },
+                    child: Text(l10n.backToMenu),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      InterstitialAdService.tryShowInterstitial(
+                        context,
+                        InterstitialTrigger.restartYouWon,
+                        onDone: () {
+                          Navigator.of(ctx).pop();
+                          notifier.startTimedGame(next.difficulty);
+                        },
+                      );
+                    },
+                    child: Text(l10n.newGame),
+                  ),
+                ],
+              );
+            }
             return AlertDialog(
               title: Text(l10n.youWon),
               content: Column(
@@ -109,6 +255,11 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(l10n.congratulations),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.victoryDifficulty(levelLabel),
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                   if (isDaily) ...[
                     const SizedBox(height: 8),
                     Text(
@@ -200,7 +351,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
       }
     });
 
-    return _GameScreenBody(dailyChallenge: widget.dailyChallenge);
+    return _GameScreenBody(
+      dailyChallenge: widget.dailyChallenge,
+    );
   }
 }
 
@@ -375,7 +528,12 @@ void showGameOverDialog(BuildContext context, WidgetRef ref, Level difficulty) {
               InterstitialTrigger.restartGameOver,
               onDone: () {
                 Navigator.of(ctx).pop();
-                ref.read(gameProvider.notifier).newGame(difficulty);
+                final n = ref.read(gameProvider.notifier);
+                if (ref.read(gameProvider).isTimedMode) {
+                  n.startTimedGame(difficulty);
+                } else {
+                  n.newGame(difficulty);
+                }
               },
             );
           },
@@ -412,6 +570,12 @@ class _GameScreenBody extends ConsumerWidget {
     final state = ref.watch(gameProvider);
     final notifier = ref.read(gameProvider.notifier);
     final colors = context.appColors;
+    final timed = state.isTimedMode;
+    final title = dailyChallenge
+        ? l10n.dailyChallenge
+        : timed
+            ? l10n.timedModeTitle
+            : l10n.appTitle;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -419,6 +583,11 @@ class _GameScreenBody extends ConsumerWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
+            if (state.isTimedOut) {
+              notifier.clearTimedSessionForMenu();
+              if (context.mounted) Navigator.of(context).pop();
+              return;
+            }
             notifier.onAppPaused();
             InterstitialAdService.tryShowInterstitial(
               context,
@@ -431,8 +600,48 @@ class _GameScreenBody extends ConsumerWidget {
           },
           tooltip: l10n.backToMenu,
         ),
-        title: Text(dailyChallenge ? l10n.dailyChallenge : l10n.appTitle),
+        title: Text(title),
         actions: [
+          if (timed && !state.isWon && !state.isTimedOut)
+            IconButton(
+              icon: const Icon(Icons.timer_outlined),
+              tooltip: l10n.timedAddTimeAd,
+              onPressed: () {
+                notifier.pauseTimer();
+                showDialog<void>(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => _LoadingAdDialog(
+                    message: l10n.timedAddTimeAd,
+                  ),
+                );
+                showRewardedAd(
+                  context,
+                  onAdReadyToShow: () {
+                    if (context.mounted) Navigator.of(context).pop();
+                  },
+                  onRewarded: () {
+                    notifier.addTimedTimeAfterAd();
+                    notifier.onAppResumed();
+                  },
+                  onDismissed: () {
+                    if (context.mounted) notifier.onAppResumed();
+                  },
+                  onNotAvailable: () {
+                    if (context.mounted) {
+                      Navigator.of(context).pop();
+                      notifier.onAppResumed();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(l10n.adNotAvailableTimedBonus),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                );
+              },
+            ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             tooltip: l10n.menu,
@@ -444,7 +653,8 @@ class _GameScreenBody extends ConsumerWidget {
                   InterstitialTrigger.newGameInHeader,
                   onDone: () {
                     notifier.onAppResumed();
-                    _showNewGameDialog(context, ref);
+                    _showNewGameDialog(context, ref,
+                        timedMode: ref.read(gameProvider).isTimedMode);
                   },
                 );
               }
@@ -466,7 +676,12 @@ class _GameScreenBody extends ConsumerWidget {
               final colorScheme = Theme.of(context).colorScheme;
               return [
                 if (!dailyChallenge)
-                  PopupMenuItem(value: 'new', child: Text(l10n.newGame)),
+                  PopupMenuItem(
+                    value: 'new',
+                    child: Text(
+                      gameState.isTimedMode ? l10n.timedStartNew : l10n.newGame,
+                    ),
+                  ),
                 PopupMenuItem(value: 'stats', child: Text(l10n.statistics)),
                 PopupMenuItem<String>(
                   value: 'no_errors',
@@ -561,11 +776,20 @@ class _GameScreenBody extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          formatDuration(state.elapsedSeconds),
+                          formatDuration(
+                            timed
+                                ? state.timedRemainingSeconds
+                                : state.elapsedSeconds,
+                          ),
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontFeatures: const [FontFeature.tabularFigures()],
-                            color: colors.primary,
+                            color: timed &&
+                                    state.timedRemainingSeconds < 60 &&
+                                    !state.isWon &&
+                                    !state.isTimedOut
+                                ? colors.errorDark
+                                : colors.primary,
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -675,7 +899,8 @@ class _GameScreenBody extends ConsumerWidget {
                                           label: l10n.notes,
                                           isActive: state.isNotesMode,
                                           actionScale: scale,
-                                          onPressed: state.isWon
+                                          onPressed: state.isWon ||
+                                                  state.isTimedOut
                                               ? null
                                               : () {
                                                   hapticSelection();
@@ -707,7 +932,8 @@ class _GameScreenBody extends ConsumerWidget {
                                               ? '${state.freeHintsLeft}'
                                               : null,
                                           actionScale: scale,
-                                          onPressed: state.isWon
+                                          onPressed: state.isWon ||
+                                                  state.isTimedOut
                                               ? null
                                               : () async {
                                                   hapticLightImpact();
@@ -797,7 +1023,9 @@ class _GameScreenBody extends ConsumerWidget {
   }
 
   static bool _undoEnabled(GameState state) {
-    return !state.isWon && state.undoStack.isNotEmpty;
+    return !state.isWon &&
+        !state.isTimedOut &&
+        state.undoStack.isNotEmpty;
   }
 
   static void _onUndoTap(BuildContext context, WidgetRef ref, GameState state) {
@@ -848,39 +1076,60 @@ class _GameScreenBody extends ConsumerWidget {
     );
   }
 
-  static void _showNewGameDialog(BuildContext context, WidgetRef ref) {
+  static void _showNewGameDialog(
+    BuildContext context,
+    WidgetRef ref, {
+    bool timedMode = false,
+  }) {
     final l10n = AppLocalizations.of(context)!;
+    final n = ref.read(gameProvider.notifier);
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(l10n.newGame),
+        title: Text(timedMode ? l10n.timedStartNew : l10n.newGame),
         content: Text(l10n.chooseDifficulty),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              ref.read(gameProvider.notifier).newGame(Level.easy);
+              if (timedMode) {
+                n.startTimedGame(Level.easy);
+              } else {
+                n.newGame(Level.easy);
+              }
             },
             child: Text(l10n.levelEasy),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              ref.read(gameProvider.notifier).newGame(Level.medium);
+              if (timedMode) {
+                n.startTimedGame(Level.medium);
+              } else {
+                n.newGame(Level.medium);
+              }
             },
             child: Text(l10n.levelMedium),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              ref.read(gameProvider.notifier).newGame(Level.hard);
+              if (timedMode) {
+                n.startTimedGame(Level.hard);
+              } else {
+                n.newGame(Level.hard);
+              }
             },
             child: Text(l10n.levelHard),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              ref.read(gameProvider.notifier).newGame(Level.expert);
+              if (timedMode) {
+                n.startTimedGame(Level.expert);
+              } else {
+                n.newGame(Level.expert);
+              }
             },
             child: Text(l10n.levelExpert),
           ),

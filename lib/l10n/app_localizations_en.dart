@@ -126,6 +126,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String victoryDifficulty(String level) {
+    return 'Difficulty: $level';
+  }
+
+  @override
   String get newRecord => 'New record!';
 
   @override
@@ -310,4 +315,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get followSystem => 'Follow system';
+
+  @override
+  String get timedModeTitle => 'Time attack';
+
+  @override
+  String get timedModeHomeButton => 'Time attack';
+
+  @override
+  String get timedModeInfoBody =>
+      'Finish the puzzle before the timer reaches zero. While playing, tap the timer icon in the app bar to watch an ad and add 2 minutes (you can do this as many times as you want). This mode uses a separate save from the main game.\n\nCountdown: Easy 15 min · Medium 12 · Hard 8 · Expert 5. Extra +2 min per ad.';
+
+  @override
+  String get timedContinueDialogTitle => 'Time attack';
+
+  @override
+  String get timedContinueDialogBody =>
+      'Continue your saved game or start a new one?';
+
+  @override
+  String get timedStartNew => 'New game';
+
+  @override
+  String get timeUpTitle => 'Time\'s up';
+
+  @override
+  String get timeUpDescription =>
+      'The countdown reached zero. This game is over.';
+
+  @override
+  String timedVictoryStartingMinutes(int minutes) {
+    return 'Starting time: $minutes min';
+  }
+
+  @override
+  String timedVictoryExtendedMinutes(int minutes) {
+    return 'Extended with ads: +$minutes min';
+  }
+
+  @override
+  String get timedAddTimeAd => '+2 min (watch ad)';
+
+  @override
+  String get thirtySecondsLeftWarning => '30 seconds left!';
+
+  @override
+  String get adNotAvailableTimedBonus => 'Ad not available. Time not added.';
+
+  @override
+  String get timedSaveInvalid => 'Could not load time attack save.';
 }

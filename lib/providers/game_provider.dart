@@ -55,11 +55,26 @@ class GameState {
     int? undoRemaining,
     this.noErrorsModeThisSession = false,
     this.previousBestTimeForLevel,
+    this.isTimedMode = false,
+    this.timedRemainingSeconds = 0,
+    this.timedInitialLimitSeconds = 0,
+    this.timedBonusSecondsAdded = 0,
+    this.isTimedOut = false,
+    this.timedThirtySecondWarned = false,
   })  : cellNotes = cellNotes ?? _emptyCellNotes(),
         undoRemaining = undoRemaining ?? _maxUndoForLevel(Level.easy);
 
   /// Set when game is won: best time for this level before this win (null = first win for this level). For victory dialog.
   final int? previousBestTimeForLevel;
+
+  /// Countdown mode: separate save slot, limit per difficulty, +2 min per rewarded ad.
+  final bool isTimedMode;
+  final int timedRemainingSeconds;
+  final int timedInitialLimitSeconds;
+  /// Cumulative seconds added via ads (for victory summary).
+  final int timedBonusSecondsAdded;
+  final bool isTimedOut;
+  final bool timedThirtySecondWarned;
 
   final List<SudokuCell> cells;
   final List<int> solution;
@@ -157,6 +172,12 @@ class GameState {
     int? undoRemaining,
     bool? noErrorsModeThisSession,
     Object? previousBestTimeForLevel = _omit,
+    bool? isTimedMode,
+    int? timedRemainingSeconds,
+    int? timedInitialLimitSeconds,
+    int? timedBonusSecondsAdded,
+    bool? isTimedOut,
+    bool? timedThirtySecondWarned,
   }) {
     return GameState(
       cells: cells ?? this.cells,
@@ -177,9 +198,25 @@ class GameState {
       undoRemaining: undoRemaining ?? this.undoRemaining,
       noErrorsModeThisSession: noErrorsModeThisSession ?? this.noErrorsModeThisSession,
       previousBestTimeForLevel: identical(previousBestTimeForLevel, _omit) ? this.previousBestTimeForLevel : previousBestTimeForLevel as int?,
+      isTimedMode: isTimedMode ?? this.isTimedMode,
+      timedRemainingSeconds: timedRemainingSeconds ?? this.timedRemainingSeconds,
+      timedInitialLimitSeconds: timedInitialLimitSeconds ?? this.timedInitialLimitSeconds,
+      timedBonusSecondsAdded: timedBonusSecondsAdded ?? this.timedBonusSecondsAdded,
+      isTimedOut: isTimedOut ?? this.isTimedOut,
+      timedThirtySecondWarned: timedThirtySecondWarned ?? this.timedThirtySecondWarned,
     );
   }
 }
+
+/// Starting countdown per difficulty (seconds).
+int timedModeLimitSeconds(Level level) => switch (level) {
+      Level.easy => 15 * 60,
+      Level.medium => 12 * 60,
+      Level.hard => 8 * 60,
+      Level.expert => 5 * 60,
+    };
+
+const int timedModeAdBonusSeconds = 120;
 
 /// Converts sudoku_dart puzzle (-1 = empty) to our cells (0 = empty).
 List<SudokuCell> puzzleToCells(List<int> puzzle) {
@@ -331,6 +368,12 @@ class GameNotifier extends StateNotifier<GameState> {
       cellNotes: _emptyCellNotes(),
       undoStack: [],
       undoRemaining: _maxUndoForLevel(level),
+      isTimedMode: false,
+      timedRemainingSeconds: 0,
+      timedInitialLimitSeconds: 0,
+      timedBonusSecondsAdded: 0,
+      isTimedOut: false,
+      timedThirtySecondWarned: false,
     );
     _revalidateWrong();
     _startTimer();
@@ -378,6 +421,12 @@ class GameNotifier extends StateNotifier<GameState> {
         cellNotes: notes,
         undoStack: [],
         undoRemaining: _maxUndoForLevel(level),
+        isTimedMode: false,
+        timedRemainingSeconds: 0,
+        timedInitialLimitSeconds: 0,
+        timedBonusSecondsAdded: 0,
+        isTimedOut: false,
+        timedThirtySecondWarned: false,
       );
       _revalidateWrong();
     } catch (_) {
@@ -388,8 +437,23 @@ class GameNotifier extends StateNotifier<GameState> {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (state.isWon) {
+      if (state.isWon || state.isTimedOut) {
         _timer?.cancel();
+        return;
+      }
+      if (state.isTimedMode) {
+        final r = state.timedRemainingSeconds;
+        if (r <= 1) {
+          _stopTimer();
+          GameStorage.saveTimedGame(null);
+          state = state.copyWith(timedRemainingSeconds: 0, isTimedOut: true);
+          return;
+        }
+        state = state.copyWith(
+          timedRemainingSeconds: r - 1,
+          elapsedSeconds: state.elapsedSeconds + 1,
+        );
+        _persistGame();
         return;
       }
       state = state.copyWith(elapsedSeconds: state.elapsedSeconds + 1);
@@ -416,7 +480,7 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// Resume timer when app is foregrounded, if game is in progress and not won.
   void onAppResumed() {
-    if (!state.isWon && !state.isInitial) _startTimer();
+    if (!state.isWon && !state.isInitial && !state.isTimedOut) _startTimer();
   }
 
   /// Ends the game and clears saved data (e.g. after Game Over → Back to menu). Continue will no longer restore this game.
@@ -424,13 +488,15 @@ class GameNotifier extends StateNotifier<GameState> {
     _stopTimer();
     if (_isDailySession) {
       await GameStorage.saveDailyGame(null);
+    } else if (state.isTimedMode) {
+      await GameStorage.saveTimedGame(null);
     } else {
       await GameStorage.saveGame(null);
     }
   }
 
   Future<void> _persistGame() async {
-    if (state.isWon || state.isInitial) return;
+    if (state.isWon || state.isInitial || state.isTimedOut) return;
     final data = <String, dynamic>{
       GameStorage.keyDifficulty: state.difficulty.index,
       GameStorage.keyCellValues: state.cells.map((c) => c.value).toList(),
@@ -443,7 +509,13 @@ class GameNotifier extends StateNotifier<GameState> {
       GameStorage.keyCellNotes: state.cellNotes.map((s) => s.toList()).toList(),
       GameStorage.keySavedAt: DateTime.now().toIso8601String(),
     };
-    if (_isDailySession) {
+    if (state.isTimedMode) {
+      data[GameStorage.keyTimedRemaining] = state.timedRemainingSeconds;
+      data[GameStorage.keyTimedInitialLimit] = state.timedInitialLimitSeconds;
+      data[GameStorage.keyTimedBonusSeconds] = state.timedBonusSecondsAdded;
+      data[GameStorage.keyTimedWarned30] = state.timedThirtySecondWarned;
+      await GameStorage.saveTimedGame(data);
+    } else if (_isDailySession) {
       data[GameStorage.keyDailyDate] = _todayKey();
       await GameStorage.saveDailyGame(data);
     } else {
@@ -476,14 +548,164 @@ class GameNotifier extends StateNotifier<GameState> {
       cellNotes: _emptyCellNotes(),
       undoStack: [],
       undoRemaining: _maxUndoForLevel(level),
+      isTimedMode: false,
+      timedRemainingSeconds: 0,
+      timedInitialLimitSeconds: 0,
+      timedBonusSecondsAdded: 0,
+      isTimedOut: false,
+      timedThirtySecondWarned: false,
     );
     _revalidateWrong();
     _startTimer();
     _persistGame();
   }
 
+  /// Countdown mode: separate save, limits Easy 15 / Medium 12 / Hard 8 / Expert 5 min.
+  void startTimedGame(Level level) {
+    _isDailySession = false;
+    _stopTimer();
+    final sudoku = Sudoku.generate(level);
+    final puzzle = sudoku.puzzle;
+    if (puzzle.isEmpty) {
+      state = _initialState();
+      return;
+    }
+    final solution = sudoku.solution;
+    if (solution.isEmpty) {
+      state = _initialState();
+      return;
+    }
+    final limit = timedModeLimitSeconds(level);
+    state = GameState(
+      cells: puzzleToCells(puzzle),
+      solution: List<int>.from(solution),
+      selectedCellIndex: null,
+      isWon: false,
+      difficulty: level,
+      elapsedSeconds: 0,
+      hintsUsedThisGame: 0,
+      errorsMade: 0,
+      cellNotes: _emptyCellNotes(),
+      undoStack: [],
+      undoRemaining: _maxUndoForLevel(level),
+      isTimedMode: true,
+      timedRemainingSeconds: limit,
+      timedInitialLimitSeconds: limit,
+      timedBonusSecondsAdded: 0,
+      isTimedOut: false,
+      timedThirtySecondWarned: false,
+    );
+    _revalidateWrong();
+    _startTimer();
+    _persistGame();
+  }
+
+  /// Returns false if there was no save or restore failed (save cleared).
+  bool continueTimedGame() {
+    _isDailySession = false;
+    _stopTimer();
+    final saved = GameStorage.loadTimedGame();
+    if (saved == null) {
+      state = _initialState();
+      return false;
+    }
+    _restoreTimedGame(saved);
+    if (!state.isTimedMode || state.isInitial) {
+      return false;
+    }
+    if (!state.isWon && !state.isTimedOut) _startTimer();
+    return true;
+  }
+
+  void _restoreTimedGame(Map<String, dynamic> data) {
+    try {
+      final list = data[GameStorage.keyCellValues] as List?;
+      final origList = data[GameStorage.keyCellIsOriginal] as List?;
+      final solList = data[GameStorage.keySolution] as List?;
+      final elapsed = (data[GameStorage.keyElapsedSeconds] as num?)?.toInt() ?? 0;
+      final diffIndex = (data[GameStorage.keyDifficulty] as num?)?.toInt() ?? 0;
+      final level = Level.values[diffIndex.clamp(0, Level.values.length - 1)];
+      final remaining = (data[GameStorage.keyTimedRemaining] as num?)?.toInt() ??
+          timedModeLimitSeconds(level);
+      final initial = (data[GameStorage.keyTimedInitialLimit] as num?)?.toInt() ??
+          timedModeLimitSeconds(level);
+      final bonus = (data[GameStorage.keyTimedBonusSeconds] as num?)?.toInt() ?? 0;
+      final warned30 = data[GameStorage.keyTimedWarned30] as bool? ?? false;
+      if (list == null || list.length != 81 || solList == null || solList.length != 81) {
+        GameStorage.saveTimedGame(null);
+        state = _initialState();
+        return;
+      }
+      final cells = <SudokuCell>[];
+      for (int i = 0; i < 81; i++) {
+        final v = (list[i] as num).toInt();
+        final orig = origList != null && i < origList.length ? (origList[i] as bool) : (v != 0);
+        cells.add(SudokuCell(value: v == -1 ? 0 : v, isOriginal: orig));
+      }
+      final solution = solList.map((e) => (e as num).toInt()).toList();
+      final hintsUsed = (data[GameStorage.keyHintsUsedThisGame] as num?)?.toInt() ?? 0;
+      final errorsMade = (data[GameStorage.keyErrorsMade] as num?)?.toInt() ?? 0;
+      final isNotesMode = data[GameStorage.keyIsNotesMode] as bool? ?? false;
+      List<Set<int>> notes = _emptyCellNotes();
+      final notesRaw = data[GameStorage.keyCellNotes] as List?;
+      if (notesRaw != null && notesRaw.length == 81) {
+        notes = List.generate(81, (i) {
+          final lst = notesRaw[i];
+          if (lst is! List) return <int>{};
+          return lst.map((e) => (e as num).toInt()).where((n) => n >= 1 && n <= 9).toSet();
+        });
+      }
+      state = GameState(
+        cells: cells,
+        solution: solution,
+        selectedCellIndex: null,
+        isWon: false,
+        difficulty: level,
+        elapsedSeconds: elapsed,
+        hintsUsedThisGame: hintsUsed,
+        errorsMade: errorsMade,
+        isNotesMode: isNotesMode,
+        cellNotes: notes,
+        undoStack: [],
+        undoRemaining: _maxUndoForLevel(level),
+        isTimedMode: true,
+        timedRemainingSeconds: remaining.clamp(1, 86400),
+        timedInitialLimitSeconds: initial,
+        timedBonusSecondsAdded: bonus,
+        isTimedOut: false,
+        timedThirtySecondWarned: warned30,
+      );
+      _revalidateWrong();
+    } catch (_) {
+      GameStorage.saveTimedGame(null);
+      state = _initialState();
+    }
+  }
+
+  void addTimedTimeAfterAd() {
+    if (!state.isTimedMode || state.isWon || state.isTimedOut) return;
+    state = state.copyWith(
+      timedRemainingSeconds: state.timedRemainingSeconds + timedModeAdBonusSeconds,
+      timedBonusSecondsAdded: state.timedBonusSecondsAdded + timedModeAdBonusSeconds,
+    );
+    _persistGame();
+  }
+
+  /// After time-up dialog: new countdown game same level.
+  void restartTimedGameAfterTimeout() {
+    final level = state.difficulty;
+    startTimedGame(level);
+  }
+
+  /// Clear timed session and empty board (back to menu from time-up).
+  void clearTimedSessionForMenu() {
+    _stopTimer();
+    GameStorage.saveTimedGame(null);
+    state = _initialState();
+  }
+
   void selectCell(int? index) {
-    if (state.isWon) return;
+    if (state.isWon || state.isTimedOut) return;
     state = state.copyWith(selectedCellIndex: index);
   }
 
@@ -500,7 +722,7 @@ class GameNotifier extends StateNotifier<GameState> {
       state.difficulty == Level.easy || state.difficulty == Level.medium;
 
   void toggleNotesMode() {
-    if (state.isWon) return;
+    if (state.isWon || state.isTimedOut) return;
     state = state.copyWith(isNotesMode: !state.isNotesMode);
     _persistGame();
   }
@@ -577,7 +799,7 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// Toggle note [digit] in selected cell. If digit not allowed (conflict with original), trigger red flash and do not add.
   void toggleNote(int digit) {
-    if (state.isWon || digit < 1 || digit > 9) return;
+    if (state.isWon || state.isTimedOut || digit < 1 || digit > 9) return;
     final idx = state.selectedCellIndex;
     if (idx == null) return;
     final cell = state.cells[idx];
@@ -622,6 +844,7 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// Performs one undo (when user has free undos). Returns false if stack empty or no remaining.
   bool undo() {
+    if (state.isTimedOut) return false;
     if (state.undoStack.isEmpty) return false;
     if (state.undoRemaining <= 0 && state.difficulty != Level.expert) return false;
     _performOneUndo();
@@ -640,6 +863,7 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// After watching ad on Expert: perform one undo without using a free slot.
   bool performUndoAfterAd() {
+    if (state.isTimedOut) return false;
     if (state.undoStack.isEmpty) return false;
     _performOneUndo();
     _persistGame();
@@ -668,7 +892,7 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// Clear all notes in selected cell (Notes mode). No-op if no selection.
   void clearNotesInCell() {
-    if (state.isWon) return;
+    if (state.isWon || state.isTimedOut) return;
     final idx = state.selectedCellIndex;
     if (idx == null) return;
     if (state.cellNotes[idx].isEmpty) return;
@@ -681,7 +905,7 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// Sets digit in selected cell (or at index). Only editable non-original cells. Clears notes in that cell.
   void setCellValue(int digit) {
-    if (state.isWon) return;
+    if (state.isWon || state.isTimedOut) return;
     final idx = state.selectedCellIndex;
     if (idx == null || digit < 1 || digit > 9) return;
     final cell = state.cells[idx];
@@ -719,7 +943,7 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 
   void clearCell() {
-    if (state.isWon) return;
+    if (state.isWon || state.isTimedOut) return;
     final idx = state.selectedCellIndex;
     if (idx == null) return;
     final cell = state.cells[idx];
@@ -735,7 +959,7 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// Clears all wrong cells (non-original) to give a "second chance" after watching ad.
   void clearWrongCells() {
-    if (state.isWon) return;
+    if (state.isWon || state.isTimedOut) return;
     final newCells = <SudokuCell>[];
     for (final c in state.cells) {
       if (c.isWrong && !c.isOriginal) {
@@ -816,7 +1040,7 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// Hint: uses one free hint if any left, else returns false (UI shows "watch ad", then call applyHintFromAd).
   bool applyHint() {
-    if (state.isWon) return false;
+    if (state.isWon || state.isTimedOut) return false;
     if (state.freeHintsLeft <= 0) return false;
     return applyHintFromAd();
   }
@@ -824,7 +1048,7 @@ class GameNotifier extends StateNotifier<GameState> {
   /// Hint after watching ad (or for free when freeHintsLeft > 0). Always applies if game not won.
   /// When called after ad (freeHintsLeft was 0): restores full hint limit and counts this hint as one used — e.g. Easy ends up with 2 left.
   bool applyHintFromAd() {
-    if (state.isWon) return false;
+    if (state.isWon || state.isTimedOut) return false;
     int? target = state.selectedCellIndex;
     final cells = state.cells;
 
@@ -886,6 +1110,14 @@ class GameNotifier extends StateNotifier<GameState> {
       if (c.value == 0 || c.isWrong) return;
     }
     _stopTimer();
+    if (state.isTimedMode) {
+      await GameStorage.saveTimedGame(null);
+      state = state.copyWith(isWon: true, previousBestTimeForLevel: null);
+      GameStorage.saveActivityDate(DateTime.now()).then((_) {
+        _ref.read(activityDatesVersionProvider.notifier).state++;
+      });
+      return;
+    }
     final prevBest = GameStorage.loadBestTimeByLevel()[state.difficulty.index];
     await _persistStats();
     if (_isDailySession) {

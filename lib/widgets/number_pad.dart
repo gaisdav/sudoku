@@ -12,6 +12,10 @@ import '../providers/game_provider.dart';
 const _kMinButtonSize = 34.0;
 const _kMaxButtonSize = 58.0;
 
+/// When 5 buttons per row would be narrower than [_kMinButtonSize], use one row 1–9 (rectangular keys).
+const _kCompactGap = 4.0;
+const _kCompactRowHeight = 38.0;
+
 class NumberPad extends ConsumerWidget {
   const NumberPad({super.key});
 
@@ -29,7 +33,8 @@ class NumberPad extends ConsumerWidget {
     final state = ref.watch(gameProvider);
     final notifier = ref.read(gameProvider.notifier);
     final hasSelection = state.selectedCellIndex != null;
-    final canEdit = hasSelection && !state.isWon;
+    final canEdit =
+        hasSelection && !state.isWon && !state.isTimedOut;
     final isNotesMode = state.isNotesMode;
     // In Notes mode hide remaining counts; otherwise show on Easy/Medium.
     final showRemaining = !isNotesMode && (state.difficulty == Level.easy || state.difficulty == Level.medium);
@@ -41,12 +46,40 @@ class NumberPad extends ConsumerWidget {
         const gap = 8.0;
         const countPerRow = 5;
         final availableWidth = (constraints.maxWidth - horizontalPadding * 2).clamp(0.0, double.infinity);
-        final buttonSize = ((availableWidth - (countPerRow - 1) * gap) / countPerRow)
-            .clamp(_kMinButtonSize, _kMaxButtonSize)
-            .floorToDouble();
-        const padding = gap / 2;
+        final widthPerFive = (availableWidth - (countPerRow - 1) * gap) / countPerRow;
+        final useCompactStrip = widthPerFive < _kMinButtonSize - 0.01;
 
         final colors = context.appColors;
+        if (useCompactStrip) {
+          return Container(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+            color: colors.background,
+            child: Row(
+              children: [
+                for (int n = 1; n <= 9; n++) ...[
+                  if (n > 1) const SizedBox(width: _kCompactGap),
+                  Expanded(
+                    child: _padCellStrip(
+                      context,
+                      n,
+                      canEdit,
+                      isNotesMode,
+                      notifier,
+                      state,
+                      remaining?[n],
+                      _kCompactRowHeight,
+                      colors,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        }
+
+        final buttonSize = widthPerFive.clamp(_kMinButtonSize, _kMaxButtonSize).floorToDouble();
+        const padding = gap / 2;
+
         return Container(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
           color: colors.background,
@@ -133,25 +166,67 @@ class NumberPad extends ConsumerWidget {
       ),
     );
   }
+
+  Widget _padCellStrip(
+    BuildContext context,
+    int n,
+    bool canEdit,
+    bool isNotesMode,
+    GameNotifier notifier,
+    GameState state,
+    int? remaining,
+    double height,
+    AppColors colors,
+  ) {
+    final digitEnabled = isNotesMode || remaining == null || remaining > 0;
+    final isConflictFlash = state.conflictFlashDigit == n;
+    return _NumButton(
+      colors: colors,
+      width: double.infinity,
+      height: height,
+      label: '$n',
+      remainingAbove: remaining != null && remaining > 0 ? remaining : null,
+      isConflictFlash: isConflictFlash,
+      onPressed: canEdit && digitEnabled
+          ? () {
+              if (isNotesMode) {
+                hapticLightImpact();
+                notifier.toggleNote(n);
+              } else {
+                hapticLightImpact();
+                notifier.setCellValue(n);
+              }
+            }
+          : null,
+    );
+  }
+
 }
 
 class _NumButton extends StatelessWidget {
   const _NumButton({
     required this.colors,
     this.size = 52,
+    this.width,
+    this.height,
     this.label,
     this.icon,
     this.remaining,
+    /// Remaining count above the digit (compact strip).
+    this.remainingAbove,
     this.isConflictFlash = false,
     this.onPressed,
   });
 
   final AppColors colors;
   final double size;
+  final double? width;
+  final double? height;
   final String? label;
   final IconData? icon;
   /// Shown top-right on Easy/Medium when > 0 (how many of this digit left to place). Hidden in Notes mode.
   final int? remaining;
+  final int? remainingAbove;
   /// Red flash when this digit was rejected as note (conflict with original).
   final bool isConflictFlash;
   final VoidCallback? onPressed;
@@ -159,8 +234,15 @@ class _NumButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
-    final fontSize = (size * 0.42).clamp(16.0, 28.0);
-    final iconSize = (size * 0.5).clamp(20.0, 34.0);
+    final w = width ?? size;
+    final h = height ?? size;
+    final ref = height ?? size;
+    final fontSize = label != null
+        ? (width != null && height != null
+            ? (h * 0.38).clamp(14.0, 22.0)
+            : (ref * 0.42).clamp(16.0, 28.0))
+        : 16.0;
+    final iconSize = (ref * 0.5).clamp(18.0, 28.0);
     final mainChild = label != null
         ? Text(
             label!,
@@ -177,9 +259,57 @@ class _NumButton extends StatelessWidget {
             color: enabled ? colors.textPrimary : colors.disabled,
           );
 
-    final borderRadius = (size * 0.23).clamp(8.0, 16.0);
+    final borderRadius = (ref * 0.23).clamp(6.0, 14.0);
     final borderColor = isConflictFlash ? colors.error : colors.border;
     final bgColor = isConflictFlash ? colors.errorLight : colors.surface;
+
+    Widget content;
+    if (remainingAbove != null) {
+      final tiny = (h * 0.22).clamp(7.0, 11.0);
+      content = FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$remainingAbove',
+              style: TextStyle(
+                fontSize: tiny,
+                fontWeight: FontWeight.w600,
+                height: 1.0,
+                color: colors.textSecondary,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+            SizedBox(height: (h * 0.04).clamp(0.0, 3.0)),
+            mainChild,
+          ],
+        ),
+      );
+    } else if (remaining != null) {
+      content = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Center(child: mainChild),
+          Positioned(
+            top: 2,
+            right: 4,
+            child: Text(
+              '$remaining',
+              style: TextStyle(
+                fontSize: (ref * 0.21).clamp(9.0, 14.0),
+                fontWeight: FontWeight.w600,
+                color: colors.textSecondary,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      content = mainChild;
+    }
 
     return Material(
       color: bgColor,
@@ -188,34 +318,15 @@ class _NumButton extends StatelessWidget {
         onTap: onPressed,
         borderRadius: BorderRadius.circular(borderRadius),
         child: Container(
-          width: size,
-          height: size,
+          width: w,
+          height: h,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(borderRadius),
             border: Border.all(color: borderColor, width: isConflictFlash ? 2 : 1),
           ),
           alignment: Alignment.center,
-          child: remaining != null
-              ? Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Center(child: mainChild),
-                    Positioned(
-                      top: 2,
-                      right: 4,
-                      child: Text(
-                        '$remaining',
-                        style: TextStyle(
-                          fontSize: (size * 0.21).clamp(9.0, 14.0),
-                          fontWeight: FontWeight.w600,
-                          color: colors.textSecondary,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : mainChild,
+          padding: remainingAbove != null ? EdgeInsets.symmetric(vertical: (h * 0.06).clamp(1.0, 4.0)) : null,
+          child: content,
         ),
       ),
     );

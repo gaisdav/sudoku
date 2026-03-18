@@ -70,6 +70,14 @@
       }
     }
   },
+  "victoryDifficulty": "Difficulty: {level}",
+  "@victoryDifficulty": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
+  },
   "newRecord": "New record!",
   "slowerThanBest": "{duration} slower than your best",
   "@slowerThanBest": {
@@ -178,5 +186,33 @@
   "dailyPlayAgain": "Play again",
   "lightTheme": "Light theme",
   "darkTheme": "Dark theme",
-  "followSystem": "Follow system"
+  "followSystem": "Follow system",
+  "timedModeTitle": "Time attack",
+  "timedModeHomeButton": "Time attack",
+  "timedModeInfoBody": "Finish the puzzle before the timer reaches zero. While playing, tap the timer icon in the app bar to watch an ad and add 2 minutes (you can do this as many times as you want). This mode uses a separate save from the main game.\n\nCountdown: Easy 15 min · Medium 12 · Hard 8 · Expert 5. Extra +2 min per ad.",
+  "timedContinueDialogTitle": "Time attack",
+  "timedContinueDialogBody": "Continue your saved game or start a new one?",
+  "timedStartNew": "New game",
+  "timeUpTitle": "Time's up",
+  "timeUpDescription": "The countdown reached zero. This game is over.",
+  "timedVictoryStartingMinutes": "Starting time: {minutes} min",
+  "@timedVictoryStartingMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "timedVictoryExtendedMinutes": "Extended with ads: +{minutes} min",
+  "@timedVictoryExtendedMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "timedAddTimeAd": "+2 min (watch ad)",
+  "thirtySecondsLeftWarning": "30 seconds left!",
+  "adNotAvailableTimedBonus": "Ad not available. Time not added.",
+  "timedSaveInvalid": "Could not load time attack save."
 }

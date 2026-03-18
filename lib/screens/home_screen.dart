@@ -47,6 +47,135 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  void _openTimedGame() {
+    final l10n = AppLocalizations.of(context)!;
+    void pushTimedNew(Level level) {
+      InterstitialAdService.tryShowInterstitial(
+        context,
+        InterstitialTrigger.startNewGame,
+        onDone: () {
+          if (!context.mounted) return;
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => GameScreen(
+                timedNewGame: true,
+                timedNewLevel: level,
+              ),
+            ),
+          ).then((_) {
+            if (mounted) setState(() {});
+          });
+        },
+      );
+    }
+
+    void showTimedLevelPicker() {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.timedStartNew),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(l10n.chooseDifficulty),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ActionChip(
+                      label: Text(l10n.levelEasy),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        pushTimedNew(Level.easy);
+                      },
+                    ),
+                    ActionChip(
+                      label: Text(l10n.levelMedium),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        pushTimedNew(Level.medium);
+                      },
+                    ),
+                    ActionChip(
+                      label: Text(l10n.levelHard),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        pushTimedNew(Level.hard);
+                      },
+                    ),
+                    ActionChip(
+                      label: Text(l10n.levelExpert),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        pushTimedNew(Level.expert);
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.cancel),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (GameStorage.loadTimedGame() != null) {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.timedContinueDialogTitle),
+          content: Text(l10n.timedContinueDialogBody),
+          actionsOverflowButtonSpacing: 14,
+          actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                showTimedLevelPicker();
+              },
+              child: Text(l10n.timedStartNew),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                InterstitialAdService.tryShowInterstitial(
+                  context,
+                  InterstitialTrigger.continueGame,
+                  onDone: () {
+                    if (!context.mounted) return;
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const GameScreen(continueTimed: true),
+                      ),
+                    ).then((_) {
+                      if (mounted) setState(() {});
+                    });
+                  },
+                );
+              },
+              child: Text(l10n.continueGame),
+            ),
+          ],
+        ),
+      );
+    } else {
+      showTimedLevelPicker();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasSavedGame = GameStorage.loadGame() != null;
@@ -64,6 +193,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               hasSavedGame: hasSavedGame,
               onRefresh: () => setState(() {}),
               onOpenNewGame: _openNewGameAndRefreshOnReturn,
+              onOpenTimedGame: _openTimedGame,
               ref: ref,
             ),
             const _InstructionsTabContent(),
@@ -185,12 +315,14 @@ class _MainTabContent extends StatelessWidget {
     required this.hasSavedGame,
     required this.onRefresh,
     required this.onOpenNewGame,
+    required this.onOpenTimedGame,
     this.ref,
   });
 
   final bool hasSavedGame;
   final VoidCallback onRefresh;
   final void Function(Level level) onOpenNewGame;
+  final VoidCallback onOpenTimedGame;
   final WidgetRef? ref;
 
   @override
@@ -316,6 +448,45 @@ class _MainTabContent extends StatelessWidget {
                     ],
                   );
                 },
+              ),
+              const SizedBox(height: 20),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: FilledButton.tonalIcon(
+                      onPressed: onOpenTimedGame,
+                      icon: const Icon(Icons.timer_outlined),
+                      label: Text(l10n.timedModeHomeButton),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      showDialog<void>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text(l10n.timedModeTitle),
+                          content: SingleChildScrollView(
+                            child: Text(
+                              l10n.timedModeInfoBody,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    height: 1.4,
+                                  ),
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(),
+                              child: Text(l10n.ok),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.info_outline),
+                    tooltip: l10n.timedModeTitle,
+                  ),
+                ],
               ),
             ],
           ),

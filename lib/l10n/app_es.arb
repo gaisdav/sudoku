@@ -35,6 +35,7 @@
   "congratulations": "Enhorabuena, completaste el puzzle.",
   "timeLabel": "Tiempo: {time}",
   "hintsUsedLabel": "Pistas usadas: {count}",
+  "victoryDifficulty": "Dificultad: {level}",
   "newRecord": "¡Nuevo récord!",
   "slowerThanBest": "{duration} más lento que tu mejor",
   "loadingAd": "Cargando anuncio…",
@@ -102,5 +103,19 @@
   "dailyPlayAgain": "Jugar otra vez",
   "lightTheme": "Tema claro",
   "darkTheme": "Tema oscuro",
-  "followSystem": "Según el sistema"
+  "followSystem": "Según el sistema",
+  "timedModeTitle": "Contrarreloj",
+  "timedModeHomeButton": "Contrarreloj",
+  "timedModeInfoBody": "Completa el puzzle antes de que se acabe el tiempo. Durante la partida, pulsa el icono del temporizador en la barra superior, mira un anuncio y suma 2 minutos (tantas veces como quieras). La partida se guarda aparte de la principal.\n\nCuenta atrás: Fácil 15 min · Medio 12 · Difícil 8 · Experto 5. Extra +2 min por anuncio.",
+  "timedContinueDialogTitle": "Contrarreloj",
+  "timedContinueDialogBody": "¿Continuar la partida guardada o empezar de nuevo?",
+  "timedStartNew": "Nueva partida",
+  "timeUpTitle": "Se acabó el tiempo",
+  "timeUpDescription": "La cuenta atrás llegó a cero. Fin de la partida.",
+  "timedVictoryStartingMinutes": "Tiempo inicial: {minutes} min",
+  "timedVictoryExtendedMinutes": "Extendido con anuncios: +{minutes} min",
+  "timedAddTimeAd": "+2 min (ver anuncio)",
+  "thirtySecondsLeftWarning": "¡Quedan 30 segundos!",
+  "adNotAvailableTimedBonus": "Anuncio no disponible. No se añadió tiempo.",
+  "timedSaveInvalid": "No se pudo cargar la partida contrarreloj."
 }

@@ -7,6 +7,7 @@ class GameStorage {
   GameStorage._();
   static const _boxName = 'sudoku_game';
   static const _keySavedGame = 'saved_game';
+  static const _keyTimedGame = 'saved_timed_game';
   static const _keyStats = 'stats';
   static const _keyThemeMode = 'theme_mode';
 
@@ -47,6 +48,29 @@ class GameStorage {
   /// Returns saved game map or null.
   static Map<String, dynamic>? loadGame() {
     final raw = box.get(_keySavedGame);
+    if (raw == null) return null;
+    try {
+      return Map<String, dynamic>.from(jsonDecode(raw.toString()) as Map);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static const String keyTimedRemaining = 'timedRemaining';
+  static const String keyTimedInitialLimit = 'timedInitialLimit';
+  static const String keyTimedBonusSeconds = 'timedBonusSeconds';
+  static const String keyTimedWarned30 = 'timedWarned30';
+
+  static Future<void> saveTimedGame(Map<String, dynamic>? data) async {
+    if (data == null) {
+      await box.delete(_keyTimedGame);
+      return;
+    }
+    await box.put(_keyTimedGame, jsonEncode(data));
+  }
+
+  static Map<String, dynamic>? loadTimedGame() {
+    final raw = box.get(_keyTimedGame);
     if (raw == null) return null;
     try {
       return Map<String, dynamic>.from(jsonDecode(raw.toString()) as Map);

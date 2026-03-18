@@ -126,6 +126,11 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String victoryDifficulty(String level) {
+    return 'Сложность: $level';
+  }
+
+  @override
   String get newRecord => 'Новый рекорд!';
 
   @override
@@ -312,4 +317,53 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get followSystem => 'Как в системе';
+
+  @override
+  String get timedModeTitle => 'Игра на время';
+
+  @override
+  String get timedModeHomeButton => 'Игра на время';
+
+  @override
+  String get timedModeInfoBody =>
+      'Уложитесь в лимит времени. Во время партии нажмите иконку таймера вверху экрана, посмотрите рекламу и получите +2 минуты (сколько угодно раз). Сохранение отдельно от обычной игры.\n\nОбратный отсчёт: Лёгкий 15 мин · Средний 12 · Сложный 8 · Эксперт 5. Дополнительно +2 мин за рекламу.';
+
+  @override
+  String get timedContinueDialogTitle => 'Игра на время';
+
+  @override
+  String get timedContinueDialogBody =>
+      'Продолжить сохранённую партию или начать новую?';
+
+  @override
+  String get timedStartNew => 'Новая игра';
+
+  @override
+  String get timeUpTitle => 'Время вышло';
+
+  @override
+  String get timeUpDescription => 'Отсчёт закончился. Партия завершена.';
+
+  @override
+  String timedVictoryStartingMinutes(int minutes) {
+    return 'Время в начале: $minutes мин';
+  }
+
+  @override
+  String timedVictoryExtendedMinutes(int minutes) {
+    return 'Продлено рекламой: +$minutes мин';
+  }
+
+  @override
+  String get timedAddTimeAd => '+2 мин (реклама)';
+
+  @override
+  String get thirtySecondsLeftWarning => 'Осталось 30 секунд!';
+
+  @override
+  String get adNotAvailableTimedBonus =>
+      'Реклама недоступна. Время не добавлено.';
+
+  @override
+  String get timedSaveInvalid => 'Не удалось загрузить сохранение «на время».';
 }

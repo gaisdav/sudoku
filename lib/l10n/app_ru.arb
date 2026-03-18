@@ -35,6 +35,7 @@
   "congratulations": "Поздравляем, вы собрали головоломку.",
   "timeLabel": "Время: {time}",
   "hintsUsedLabel": "Подсказок использовано: {count}",
+  "victoryDifficulty": "Сложность: {level}",
   "newRecord": "Новый рекорд!",
   "slowerThanBest": "На {duration} медленнее вашего лучшего",
   "loadingAd": "Загрузка рекламы…",
@@ -102,5 +103,19 @@
   "dailyPlayAgain": "Сыграть снова",
   "lightTheme": "Светлая тема",
   "darkTheme": "Тёмная тема",
-  "followSystem": "Как в системе"
+  "followSystem": "Как в системе",
+  "timedModeTitle": "Игра на время",
+  "timedModeHomeButton": "Игра на время",
+  "timedModeInfoBody": "Уложитесь в лимит времени. Во время партии нажмите иконку таймера вверху экрана, посмотрите рекламу и получите +2 минуты (сколько угодно раз). Сохранение отдельно от обычной игры.\n\nОбратный отсчёт: Лёгкий 15 мин · Средний 12 · Сложный 8 · Эксперт 5. Дополнительно +2 мин за рекламу.",
+  "timedContinueDialogTitle": "Игра на время",
+  "timedContinueDialogBody": "Продолжить сохранённую партию или начать новую?",
+  "timedStartNew": "Новая игра",
+  "timeUpTitle": "Время вышло",
+  "timeUpDescription": "Отсчёт закончился. Партия завершена.",
+  "timedVictoryStartingMinutes": "Время в начале: {minutes} мин",
+  "timedVictoryExtendedMinutes": "Продлено рекламой: +{minutes} мин",
+  "timedAddTimeAd": "+2 мин (реклама)",
+  "thirtySecondsLeftWarning": "Осталось 30 секунд!",
+  "adNotAvailableTimedBonus": "Реклама недоступна. Время не добавлено.",
+  "timedSaveInvalid": "Не удалось загрузить сохранение «на время»."
 }

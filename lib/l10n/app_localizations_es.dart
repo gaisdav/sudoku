@@ -126,6 +126,11 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String victoryDifficulty(String level) {
+    return 'Dificultad: $level';
+  }
+
+  @override
   String get newRecord => '¡Nuevo récord!';
 
   @override
@@ -313,4 +318,54 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get followSystem => 'Según el sistema';
+
+  @override
+  String get timedModeTitle => 'Contrarreloj';
+
+  @override
+  String get timedModeHomeButton => 'Contrarreloj';
+
+  @override
+  String get timedModeInfoBody =>
+      'Completa el puzzle antes de que se acabe el tiempo. Durante la partida, pulsa el icono del temporizador en la barra superior, mira un anuncio y suma 2 minutos (tantas veces como quieras). La partida se guarda aparte de la principal.\n\nCuenta atrás: Fácil 15 min · Medio 12 · Difícil 8 · Experto 5. Extra +2 min por anuncio.';
+
+  @override
+  String get timedContinueDialogTitle => 'Contrarreloj';
+
+  @override
+  String get timedContinueDialogBody =>
+      '¿Continuar la partida guardada o empezar de nuevo?';
+
+  @override
+  String get timedStartNew => 'Nueva partida';
+
+  @override
+  String get timeUpTitle => 'Se acabó el tiempo';
+
+  @override
+  String get timeUpDescription =>
+      'La cuenta atrás llegó a cero. Fin de la partida.';
+
+  @override
+  String timedVictoryStartingMinutes(int minutes) {
+    return 'Tiempo inicial: $minutes min';
+  }
+
+  @override
+  String timedVictoryExtendedMinutes(int minutes) {
+    return 'Extendido con anuncios: +$minutes min';
+  }
+
+  @override
+  String get timedAddTimeAd => '+2 min (ver anuncio)';
+
+  @override
+  String get thirtySecondsLeftWarning => '¡Quedan 30 segundos!';
+
+  @override
+  String get adNotAvailableTimedBonus =>
+      'Anuncio no disponible. No se añadió tiempo.';
+
+  @override
+  String get timedSaveInvalid => 'No se pudo cargar la partida contrarreloj.';
 }
