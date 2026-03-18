@@ -202,6 +202,15 @@ class GameNotifier extends StateNotifier<GameState> {
   Timer? _justCompletedTimer;
   Timer? _conflictFlashTimer;
 
+  /// When true, progress is saved to [GameStorage.saveDailyGame], not normal continue slot.
+  bool _isDailySession = false;
+  bool get isDailySession => _isDailySession;
+
+  static String _todayKey() {
+    final n = DateTime.now();
+    return '${n.year.toString().padLeft(4, '0')}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
+  }
+
   static Set<String> _completeRegionIds(GameState s) {
     final set = <String>{};
     for (int r = 0; r < 9; r++) {
@@ -242,17 +251,90 @@ class GameNotifier extends StateNotifier<GameState> {
   /// Call once after storage is ready. Loads saved game or starts new with [level].
   /// When returning to an already loaded game (Continue), restarts the timer if game not won.
   void ensureGameStarted([Level level = Level.easy]) {
-    if (!state.isInitial) {
+    _isDailySession = false;
+    final saved = GameStorage.loadGame();
+    if (saved != null) {
+      if (state.isWon) state = _initialState();
+      _restoreGame(saved);
       if (!state.isWon) _startTimer();
       return;
     }
-    final saved = GameStorage.loadGame();
-    if (saved != null) {
-      _restoreGame(saved);
-      _startTimer();
-      return;
+    if (state.isWon) state = _initialState();
+    if (!state.isInitial) {
+      state = _initialState();
     }
     newGame(level);
+  }
+
+  /// Daily challenge: one puzzle per calendar day for selected difficulty (separate from Continue).
+  void startDailyChallenge() {
+    _isDailySession = true;
+    _stopTimer();
+    if (state.isWon) state = _initialState();
+
+    final today = _todayKey();
+    final levelIndex = GameStorage.loadDailyChallengeLevelIndex();
+    final level = Level.values[levelIndex.clamp(0, Level.values.length - 1)];
+
+    final saved = GameStorage.loadDailyGame();
+    final savedDate = saved?[GameStorage.keyDailyDate]?.toString();
+    final savedDiff = (saved?[GameStorage.keyDifficulty] as num?)?.toInt();
+
+    if (saved != null &&
+        savedDate == today &&
+        savedDiff == levelIndex &&
+        saved[GameStorage.keyCellValues] != null &&
+        (saved[GameStorage.keyCellValues] as List).length == 81) {
+      _restoreGame(saved);
+      if (!state.isWon) {
+        _startTimer();
+        return;
+      }
+    }
+    _startFreshDailyPuzzle(today, level, levelIndex);
+  }
+
+  void _startFreshDailyPuzzle(String today, Level level, int levelIndex) {
+    List<int> puzzle;
+    List<int> solution;
+    final cache = GameStorage.loadDailyPuzzleCache(today, levelIndex);
+    if (cache != null && cache['puzzle'] is List && cache['solution'] is List) {
+      puzzle = (cache['puzzle'] as List).map((e) => (e as num).toInt()).toList();
+      solution = (cache['solution'] as List).map((e) => (e as num).toInt()).toList();
+      if (puzzle.length != 81 || solution.length != 81) {
+        puzzle = [];
+        solution = [];
+      }
+    } else {
+      puzzle = [];
+      solution = [];
+    }
+    if (puzzle.isEmpty) {
+      final sudoku = Sudoku.generate(level);
+      puzzle = sudoku.puzzle;
+      solution = sudoku.solution;
+      if (puzzle.isEmpty || solution.isEmpty) {
+        state = _initialState();
+        return;
+      }
+      GameStorage.saveDailyPuzzleCache(today, levelIndex, puzzle, solution);
+    }
+    state = GameState(
+      cells: puzzleToCells(puzzle),
+      solution: List<int>.from(solution),
+      selectedCellIndex: null,
+      isWon: false,
+      difficulty: level,
+      elapsedSeconds: 0,
+      hintsUsedThisGame: 0,
+      errorsMade: 0,
+      cellNotes: _emptyCellNotes(),
+      undoStack: [],
+      undoRemaining: _maxUndoForLevel(level),
+    );
+    _revalidateWrong();
+    _startTimer();
+    _persistGame();
   }
 
   void _restoreGame(Map<String, dynamic> data) {
@@ -340,12 +422,16 @@ class GameNotifier extends StateNotifier<GameState> {
   /// Ends the game and clears saved data (e.g. after Game Over → Back to menu). Continue will no longer restore this game.
   Future<void> endGameAndClearSave() async {
     _stopTimer();
-    await GameStorage.saveGame(null);
+    if (_isDailySession) {
+      await GameStorage.saveDailyGame(null);
+    } else {
+      await GameStorage.saveGame(null);
+    }
   }
 
   Future<void> _persistGame() async {
     if (state.isWon || state.isInitial) return;
-    final data = {
+    final data = <String, dynamic>{
       GameStorage.keyDifficulty: state.difficulty.index,
       GameStorage.keyCellValues: state.cells.map((c) => c.value).toList(),
       GameStorage.keyCellIsOriginal: state.cells.map((c) => c.isOriginal).toList(),
@@ -357,7 +443,12 @@ class GameNotifier extends StateNotifier<GameState> {
       GameStorage.keyCellNotes: state.cellNotes.map((s) => s.toList()).toList(),
       GameStorage.keySavedAt: DateTime.now().toIso8601String(),
     };
-    await GameStorage.saveGame(data);
+    if (_isDailySession) {
+      data[GameStorage.keyDailyDate] = _todayKey();
+      await GameStorage.saveDailyGame(data);
+    } else {
+      await GameStorage.saveGame(data);
+    }
   }
 
   void _newGame(Level level) {
@@ -789,16 +880,21 @@ class GameNotifier extends StateNotifier<GameState> {
     return true;
   }
 
-  void _checkWin() {
+  Future<void> _checkWin() async {
     for (int i = 0; i < 81; i++) {
       final c = state.cells[i];
       if (c.value == 0 || c.isWrong) return;
     }
     _stopTimer();
     final prevBest = GameStorage.loadBestTimeByLevel()[state.difficulty.index];
-    _persistStats();
+    await _persistStats();
+    if (_isDailySession) {
+      await GameStorage.saveDailyCompletedDate(_todayKey());
+      await GameStorage.saveDailyGame(null);
+    } else {
+      await GameStorage.saveGame(null);
+    }
     state = state.copyWith(isWon: true, previousBestTimeForLevel: prevBest);
-    GameStorage.saveGame(null);
     GameStorage.saveActivityDate(DateTime.now()).then((_) {
       _ref.read(activityDatesVersionProvider.notifier).state++;
     });
@@ -823,6 +919,7 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 
   void newGame([Level? level]) {
+    _isDailySession = false;
     _newGame(level ?? state.difficulty);
   }
 }

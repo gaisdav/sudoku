@@ -287,6 +287,25 @@ class AppLocalizationsEs extends AppLocalizations {
       'Las notificaciones están desactivadas. Actívalas en los ajustes del sistema.';
 
   @override
+  String get dailyChallenge => 'Desafío diario';
+
+  @override
+  String get dailyChallengeTapSubtitle =>
+      'Un puzzle al día en la dificultad que elijas abajo.';
+
+  @override
+  String get dailyCompletedToday => 'Hecho hoy';
+
+  @override
+  String get dailyChallengeDifficulty => 'Dificultad del desafío diario';
+
+  @override
+  String get dailyChallengeCompletedLine => '¡Desafío diario completado!';
+
+  @override
+  String get dailyPlayAgain => 'Jugar otra vez';
+
+  @override
   String get lightTheme => 'Tema claro';
 
   @override

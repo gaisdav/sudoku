@@ -182,6 +182,7 @@ class GameStorage {
       bestTimeHintsByLevel: {},
     );
     await clearActivityDates();
+    await clearDailyChallengeOnStatsReset();
   }
 
   // --- Activity dates (for streak & calendar) ---
@@ -193,6 +194,9 @@ class GameStorage {
   static String _dateToKey(DateTime date) {
     return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
+
+  /// Today's date key (local).
+  static String todayDateKey() => _dateToKey(DateTime.now());
 
   /// Records that the user was active (e.g. won a puzzle) on [date]. Uses local date. Keeps only last [_maxActivityDates] days.
   static Future<void> saveActivityDate(DateTime date) async {
@@ -220,6 +224,91 @@ class GameStorage {
   /// Clears all activity dates (e.g. when user resets statistics).
   static Future<void> clearActivityDates() async {
     await box.delete(_keyActivityDates);
+  }
+
+  // --- Daily challenge ---
+
+  static const _keyDailyGame = 'saved_daily_game';
+  static const _keyDailyChallengeLevel = 'daily_challenge_level_index';
+  static const _keyDailyCompletedDate = 'daily_completed_date';
+  static const String keyDailyDate = 'dailyDate';
+
+  static String _dailyCacheKey(String date, int levelIndex) => 'daily_puzzle_${date}_$levelIndex';
+
+  static Future<void> saveDailyGame(Map<String, dynamic>? data) async {
+    if (data == null) {
+      await box.delete(_keyDailyGame);
+      return;
+    }
+    await box.put(_keyDailyGame, jsonEncode(data));
+  }
+
+  static Map<String, dynamic>? loadDailyGame() {
+    final raw = box.get(_keyDailyGame);
+    if (raw == null) return null;
+    try {
+      return Map<String, dynamic>.from(jsonDecode(raw.toString()) as Map);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// In-progress daily only (call when user changes daily difficulty in settings).
+  static Future<void> clearDailyInProgress() async {
+    await box.delete(_keyDailyGame);
+  }
+
+  static Future<void> saveDailyChallengeLevelIndex(int index) async {
+    await box.put(_keyDailyChallengeLevel, index.clamp(0, 3));
+  }
+
+  /// Default: Medium (1).
+  static int loadDailyChallengeLevelIndex() {
+    final raw = box.get(_keyDailyChallengeLevel);
+    if (raw == null) return 1;
+    return (raw is num) ? raw.toInt().clamp(0, 3) : 1;
+  }
+
+  static Future<void> saveDailyCompletedDate(String? yyyyMmDd) async {
+    if (yyyyMmDd == null || yyyyMmDd.isEmpty) {
+      await box.delete(_keyDailyCompletedDate);
+    } else {
+      await box.put(_keyDailyCompletedDate, yyyyMmDd);
+    }
+  }
+
+  static String? loadDailyCompletedDate() {
+    final raw = box.get(_keyDailyCompletedDate);
+    if (raw == null) return null;
+    final s = raw.toString();
+    return s.length == 10 ? s : null;
+  }
+
+  static Map<String, dynamic>? loadDailyPuzzleCache(String date, int levelIndex) {
+    final raw = box.get(_dailyCacheKey(date, levelIndex));
+    if (raw == null) return null;
+    try {
+      return Map<String, dynamic>.from(jsonDecode(raw.toString()) as Map);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> saveDailyPuzzleCache(
+    String date,
+    int levelIndex,
+    List<int> puzzle,
+    List<int> solution,
+  ) async {
+    await box.put(
+      _dailyCacheKey(date, levelIndex),
+      jsonEncode({'puzzle': puzzle, 'solution': solution}),
+    );
+  }
+
+  static Future<void> clearDailyChallengeOnStatsReset() async {
+    await box.delete(_keyDailyCompletedDate);
+    await box.delete(_keyDailyGame);
   }
 
   // --- Reminder (for этап 2a: push notifications) ---

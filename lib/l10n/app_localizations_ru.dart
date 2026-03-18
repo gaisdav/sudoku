@@ -286,6 +286,25 @@ class AppLocalizationsRu extends AppLocalizations {
       'Уведомления выключены. Включите их в настройках системы.';
 
   @override
+  String get dailyChallenge => 'Ежедневный вызов';
+
+  @override
+  String get dailyChallengeTapSubtitle =>
+      'Одна головоломка в день на выбранной ниже сложности.';
+
+  @override
+  String get dailyCompletedToday => 'Сегодня выполнено';
+
+  @override
+  String get dailyChallengeDifficulty => 'Сложность ежедневного вызова';
+
+  @override
+  String get dailyChallengeCompletedLine => 'Ежедневный вызов пройден!';
+
+  @override
+  String get dailyPlayAgain => 'Сыграть снова';
+
+  @override
   String get lightTheme => 'Светлая тема';
 
   @override

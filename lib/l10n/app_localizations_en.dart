@@ -284,6 +284,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'Notifications are off. Enable them in system settings.';
 
   @override
+  String get dailyChallenge => 'Daily challenge';
+
+  @override
+  String get dailyChallengeTapSubtitle =>
+      'One puzzle per day at the difficulty you set below.';
+
+  @override
+  String get dailyCompletedToday => 'Done today';
+
+  @override
+  String get dailyChallengeDifficulty => 'Daily challenge difficulty';
+
+  @override
+  String get dailyChallengeCompletedLine => 'Daily challenge completed!';
+
+  @override
+  String get dailyPlayAgain => 'Play again';
+
+  @override
   String get lightTheme => 'Light theme';
 
   @override
