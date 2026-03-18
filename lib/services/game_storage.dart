@@ -174,13 +174,93 @@ class GameStorage {
   /// Key for saved game timestamp (ISO 8601 string). Optional in saved game map.
   static const String keySavedAt = 'savedAt';
 
-  /// Resets all statistics to zero. Does not clear saved game.
+  /// Resets all statistics to zero. Does not clear saved game. Also clears activity dates and streak data.
   static Future<void> resetStats() async {
     await saveStats(
       totalWins: 0,
       bestTimeByLevel: {},
       bestTimeHintsByLevel: {},
     );
+    await clearActivityDates();
+  }
+
+  // --- Activity dates (for streak & calendar) ---
+
+  static const _keyActivityDates = 'activity_dates';
+  static const _maxActivityDates = 365;
+
+  /// Normalizes [date] to local calendar date (yyyy-MM-dd).
+  static String _dateToKey(DateTime date) {
+    return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Records that the user was active (e.g. won a puzzle) on [date]. Uses local date. Keeps only last [_maxActivityDates] days.
+  static Future<void> saveActivityDate(DateTime date) async {
+    final key = _dateToKey(date);
+    final list = List<String>.from(loadActivityDates());
+    if (list.contains(key)) return;
+    list.add(key);
+    list.sort();
+    final trimmed = list.length > _maxActivityDates ? list.sublist(list.length - _maxActivityDates) : list;
+    await box.put(_keyActivityDates, jsonEncode(trimmed));
+  }
+
+  /// Returns list of activity date strings (yyyy-MM-dd), sorted. Empty if none.
+  static List<String> loadActivityDates() {
+    final raw = box.get(_keyActivityDates);
+    if (raw == null) return [];
+    try {
+      final list = jsonDecode(raw.toString()) as List;
+      return list.map((e) => e.toString()).where((s) => s.length == 10).toList()..sort();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Clears all activity dates (e.g. when user resets statistics).
+  static Future<void> clearActivityDates() async {
+    await box.delete(_keyActivityDates);
+  }
+
+  // --- Reminder (for этап 2a: push notifications) ---
+
+  static const _keyReminderEnabled = 'reminder_enabled';
+  static const _keyReminderTime = 'reminder_time'; // "HH:mm"
+  static const _keyReminderText = 'reminder_text';
+
+  static Future<void> saveReminderEnabled(bool enabled) async {
+    await box.put(_keyReminderEnabled, enabled);
+  }
+
+  static bool loadReminderEnabled() {
+    final raw = box.get(_keyReminderEnabled);
+    if (raw == null) return false;
+    if (raw is bool) return raw;
+    return raw.toString() == 'true';
+  }
+
+  /// Saves reminder time as "HH:mm" (e.g. "19:00").
+  static Future<void> saveReminderTime(String timeHHmm) async {
+    await box.put(_keyReminderTime, timeHHmm);
+  }
+
+  /// Returns reminder time "HH:mm". Default "19:00".
+  static String loadReminderTime() {
+    final raw = box.get(_keyReminderTime);
+    if (raw == null) return '19:00';
+    final s = raw.toString().trim();
+    if (s.length == 5 && s[2] == ':') return s;
+    return '19:00';
+  }
+
+  static Future<void> saveReminderText(String text) async {
+    await box.put(_keyReminderText, text);
+  }
+
+  static String loadReminderText() {
+    final raw = box.get(_keyReminderText);
+    if (raw == null) return '';
+    return raw.toString();
   }
 
   /// Saves accent color index (0-based). Default 0 = blue.

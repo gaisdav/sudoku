@@ -142,6 +142,34 @@
   "resetStatisticsConfirmMessage": "All wins and best times will be cleared. This cannot be undone.",
   "reset": "Reset",
   "resetStatistics": "Reset statistics",
+  "progress": "Progress",
+  "viewProgress": "View progress",
+  "activityCalendar": "Activity calendar",
+  "streak": "Streak",
+  "currentStreakDays": "Current: {count} days",
+  "@currentStreakDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bestStreakDays": "Best: {count} days",
+  "@bestStreakDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "streakHint": "Play at least one puzzle per day to keep your streak.",
+  "streakReminder": "Daily reminder",
+  "streakReminderSubtitle": "Get notified so you don’t miss a day and lose your streak.",
+  "streakReminderTime": "Reminder time",
+  "streakReminderMessage": "Notification text",
+  "streakReminderMessageHint": "Message shown in the notification",
+  "streakReminderDefaultMessage": "Play Sudoku today — keep your streak!",
+  "notificationPermissionDenied": "Notifications are off. Enable them in system settings.",
   "lightTheme": "Light theme",
   "darkTheme": "Dark theme",
   "followSystem": "Follow system"

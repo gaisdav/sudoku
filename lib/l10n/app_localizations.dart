@@ -496,6 +496,90 @@ abstract class AppLocalizations {
   /// **'Reset statistics'**
   String get resetStatistics;
 
+  /// No description provided for @progress.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress'**
+  String get progress;
+
+  /// No description provided for @viewProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'View progress'**
+  String get viewProgress;
+
+  /// No description provided for @activityCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity calendar'**
+  String get activityCalendar;
+
+  /// No description provided for @streak.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak'**
+  String get streak;
+
+  /// No description provided for @currentStreakDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Current: {count} days'**
+  String currentStreakDays(int count);
+
+  /// No description provided for @bestStreakDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Best: {count} days'**
+  String bestStreakDays(int count);
+
+  /// No description provided for @streakHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Play at least one puzzle per day to keep your streak.'**
+  String get streakHint;
+
+  /// No description provided for @streakReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily reminder'**
+  String get streakReminder;
+
+  /// No description provided for @streakReminderSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Get notified so you don’t miss a day and lose your streak.'**
+  String get streakReminderSubtitle;
+
+  /// No description provided for @streakReminderTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder time'**
+  String get streakReminderTime;
+
+  /// No description provided for @streakReminderMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification text'**
+  String get streakReminderMessage;
+
+  /// No description provided for @streakReminderMessageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Message shown in the notification'**
+  String get streakReminderMessageHint;
+
+  /// No description provided for @streakReminderDefaultMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Play Sudoku today — keep your streak!'**
+  String get streakReminderDefaultMessage;
+
+  /// No description provided for @notificationPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are off. Enable them in system settings.'**
+  String get notificationPermissionDenied;
+
   /// No description provided for @lightTheme.
   ///
   /// In en, this message translates to:

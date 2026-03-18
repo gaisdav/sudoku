@@ -7,6 +7,7 @@ import 'package:sudoku_dart/sudoku_dart.dart';
 import '../models/sudoku_cell.dart';
 import '../services/game_storage.dart';
 import '../utils/vibration_helper.dart';
+import 'activity_streak_provider.dart';
 
 const _omit = Object();
 
@@ -194,8 +195,9 @@ List<SudokuCell> puzzleToCells(List<int> puzzle) {
 final _random = Random();
 
 class GameNotifier extends StateNotifier<GameState> {
-  GameNotifier() : super(_initialState());
+  GameNotifier(this._ref) : super(_initialState());
 
+  final Ref _ref;
   Timer? _timer;
   Timer? _justCompletedTimer;
   Timer? _conflictFlashTimer;
@@ -797,6 +799,9 @@ class GameNotifier extends StateNotifier<GameState> {
     _persistStats();
     state = state.copyWith(isWon: true, previousBestTimeForLevel: prevBest);
     GameStorage.saveGame(null);
+    GameStorage.saveActivityDate(DateTime.now()).then((_) {
+      _ref.read(activityDatesVersionProvider.notifier).state++;
+    });
   }
 
   Future<void> _persistStats() async {
@@ -823,5 +828,5 @@ class GameNotifier extends StateNotifier<GameState> {
 }
 
 final gameProvider = StateNotifierProvider<GameNotifier, GameState>((ref) {
-  return GameNotifier();
+  return GameNotifier(ref);
 });

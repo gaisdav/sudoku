@@ -411,7 +411,7 @@ class _GameScreenBody extends ConsumerWidget {
               }
               if (value == 'stats') {
                 notifier.onAppPaused();
-                showStatsDialog(context).then((_) {
+                showStatsDialog(context, ref: ref).then((_) {
                   if (context.mounted) notifier.onAppResumed();
                 });
               }
@@ -674,8 +674,9 @@ class _GameScreenBody extends ConsumerWidget {
                                                   final applied =
                                                       notifier.applyHint();
                                                   if (!applied) {
-                                                    if (!context.mounted)
+                                                    if (!context.mounted) {
                                                       return;
+                                                    }
                                                     notifier.onAppPaused();
                                                     showDialog<void>(
                                                       context: context,

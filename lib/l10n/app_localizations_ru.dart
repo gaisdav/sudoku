@@ -236,6 +236,56 @@ class AppLocalizationsRu extends AppLocalizations {
   String get resetStatistics => 'Сбросить статистику';
 
   @override
+  String get progress => 'Прогресс';
+
+  @override
+  String get viewProgress => 'Смотреть прогресс';
+
+  @override
+  String get activityCalendar => 'Календарь активности';
+
+  @override
+  String get streak => 'Серия';
+
+  @override
+  String currentStreakDays(int count) {
+    return 'Текущая: $count дн.';
+  }
+
+  @override
+  String bestStreakDays(int count) {
+    return 'Лучшая: $count дн.';
+  }
+
+  @override
+  String get streakHint =>
+      'Играйте хотя бы одну головоломку в день, чтобы не потерять серию.';
+
+  @override
+  String get streakReminder => 'Ежедневное напоминание';
+
+  @override
+  String get streakReminderSubtitle =>
+      'Уведомление, чтобы не пропустить день и не потерять серию.';
+
+  @override
+  String get streakReminderTime => 'Время напоминания';
+
+  @override
+  String get streakReminderMessage => 'Текст уведомления';
+
+  @override
+  String get streakReminderMessageHint => 'Текст в уведомлении';
+
+  @override
+  String get streakReminderDefaultMessage =>
+      'Сыграйте в судоку сегодня — сохраните серию!';
+
+  @override
+  String get notificationPermissionDenied =>
+      'Уведомления выключены. Включите их в настройках системы.';
+
+  @override
   String get lightTheme => 'Светлая тема';
 
   @override

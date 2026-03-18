@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,7 @@ import 'providers/theme_mode_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/app_open_ad_service.dart';
 import 'services/game_storage.dart';
+import 'services/streak_reminder_service.dart';
 import 'services/interstitial_ad_service.dart';
 import 'services/rewarded_ad_service.dart';
 
@@ -24,6 +26,13 @@ void main() async {
     await dotenv.load(fileName: '.env.example');
   }
   await GameStorage.init();
+  if (!kIsWeb) {
+    await StreakReminderService.init();
+    await StreakReminderService.applyFromStorage(
+      defaultTitle: 'Sudoku',
+      defaultBody: 'Play today to keep your streak!',
+    );
+  }
   // Инициализация AdMob в фоне — не блокируем показ UI (иначе 10+ сек чёрный экран в release).
   try {
     AppOpenAdService.setAdsInitFuture(MobileAds.instance.initialize());

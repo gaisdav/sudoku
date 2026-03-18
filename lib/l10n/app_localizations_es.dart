@@ -236,6 +236,57 @@ class AppLocalizationsEs extends AppLocalizations {
   String get resetStatistics => 'Restablecer estadísticas';
 
   @override
+  String get progress => 'Progreso';
+
+  @override
+  String get viewProgress => 'Ver progreso';
+
+  @override
+  String get activityCalendar => 'Calendario de actividad';
+
+  @override
+  String get streak => 'Racha';
+
+  @override
+  String currentStreakDays(int count) {
+    return 'Actual: $count días';
+  }
+
+  @override
+  String bestStreakDays(int count) {
+    return 'Mejor: $count días';
+  }
+
+  @override
+  String get streakHint =>
+      'Juega al menos un puzzle al día para mantener tu racha.';
+
+  @override
+  String get streakReminder => 'Recordatorio diario';
+
+  @override
+  String get streakReminderSubtitle =>
+      'Recibe un aviso para no perder un día y tu racha.';
+
+  @override
+  String get streakReminderTime => 'Hora del recordatorio';
+
+  @override
+  String get streakReminderMessage => 'Texto de la notificación';
+
+  @override
+  String get streakReminderMessageHint =>
+      'Mensaje que verás en la notificación';
+
+  @override
+  String get streakReminderDefaultMessage =>
+      '¡Juega al Sudoku hoy y mantén tu racha!';
+
+  @override
+  String get notificationPermissionDenied =>
+      'Las notificaciones están desactivadas. Actívalas en los ajustes del sistema.';
+
+  @override
   String get lightTheme => 'Tema claro';
 
   @override

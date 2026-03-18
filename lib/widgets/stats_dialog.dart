@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
+import '../providers/activity_streak_provider.dart';
 import '../services/game_storage.dart';
 
 String formatDuration(int seconds) {
@@ -10,7 +12,8 @@ String formatDuration(int seconds) {
 }
 
 /// Показывает диалог статистики. Возвращает Future, который завершается при закрытии диалога.
-Future<void> showStatsDialog(BuildContext context) {
+/// Pass [ref] so that after reset statistics the activity/streak providers are invalidated (for этап 1–2).
+Future<void> showStatsDialog(BuildContext context, {WidgetRef? ref}) {
   final l10n = AppLocalizations.of(context)!;
   final levelNames = [l10n.levelEasy, l10n.levelMedium, l10n.levelHard, l10n.levelExpert];
   return showDialog<void>(
@@ -71,6 +74,7 @@ Future<void> showStatsDialog(BuildContext context) {
                   );
                   if (confirm == true && context.mounted) {
                     await GameStorage.resetStats();
+                    ref?.read(activityDatesVersionProvider.notifier).state++;
                     setState(() {});
                   }
                 },

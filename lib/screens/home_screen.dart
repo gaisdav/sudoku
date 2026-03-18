@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudoku_dart/sudoku_dart.dart';
@@ -8,10 +9,13 @@ import '../providers/locale_provider.dart';
 import '../providers/theme_mode_provider.dart';
 import '../providers/vibration_enabled_provider.dart';
 import '../services/game_storage.dart';
+import '../services/streak_reminder_service.dart';
 import '../services/interstitial_ad_service.dart';
 import '../widgets/banner_ad_widget.dart';
+import '../providers/activity_streak_provider.dart';
 import '../widgets/stats_dialog.dart' show formatDuration, showStatsDialog;
 import 'game_screen.dart';
+import 'progress_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -59,6 +63,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               hasSavedGame: hasSavedGame,
               onRefresh: () => setState(() {}),
               onOpenNewGame: _openNewGameAndRefreshOnReturn,
+              ref: ref,
             ),
             const _InstructionsTabContent(),
             const _SettingsTabContent(),
@@ -179,11 +184,13 @@ class _MainTabContent extends StatelessWidget {
     required this.hasSavedGame,
     required this.onRefresh,
     required this.onOpenNewGame,
+    this.ref,
   });
 
   final bool hasSavedGame;
   final VoidCallback onRefresh;
   final void Function(Level level) onOpenNewGame;
+  final WidgetRef? ref;
 
   @override
   Widget build(BuildContext context) {
@@ -250,23 +257,132 @@ class _MainTabContent extends StatelessWidget {
         ),
         const Divider(height: 32),
         _SectionBlock(
+          title: l10n.streak,
+          child: const _StreakBlock(),
+        ),
+        const Divider(height: 32),
+        _SectionBlock(
           title: l10n.statistics,
           child: Padding(
             padding: const EdgeInsets.only(top: 4),
-            child: FilledButton.tonalIcon(
-              onPressed: () {
-                InterstitialAdService.tryShowInterstitial(
-                  context,
-                  InterstitialTrigger.viewStatistics,
-                  onDone: () => showStatsDialog(context),
-                );
-              },
-              icon: const Icon(Icons.bar_chart),
-              label: Text(l10n.viewStatistics),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton.tonalIcon(
+                  onPressed: () {
+                    InterstitialAdService.tryShowInterstitial(
+                      context,
+                      InterstitialTrigger.viewStatistics,
+                      onDone: () => showStatsDialog(context, ref: ref),
+                    );
+                  },
+                  icon: const Icon(Icons.bar_chart),
+                  label: Text(l10n.viewStatistics),
+                ),
+                const SizedBox(height: 8),
+                FilledButton.tonalIcon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const ProgressScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.calendar_month),
+                  label: Text(l10n.viewProgress),
+                ),
+              ],
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _StreakBlock extends ConsumerWidget {
+  const _StreakBlock();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final current = ref.watch(currentStreakProvider);
+    final best = ref.watch(bestStreakProvider);
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _StreakChip(
+                  icon: Icons.local_fire_department,
+                  label: l10n.currentStreakDays(current),
+                  colorScheme: colorScheme,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StreakChip(
+                  icon: Icons.emoji_events,
+                  label: l10n.bestStreakDays(best),
+                  colorScheme: colorScheme,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.streakHint,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StreakChip extends StatelessWidget {
+  const _StreakChip({
+    required this.icon,
+    required this.label,
+    required this.colorScheme,
+  });
+
+  final IconData icon;
+  final String label;
+  final ColorScheme colorScheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 24, color: colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurface,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -320,6 +436,8 @@ class _SettingsTabContent extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       children: const [
         _SettingsSection(),
+        SizedBox(height: 24),
+        _StreakReminderSection(),
       ],
     );
   }
@@ -469,6 +587,164 @@ class _SettingsSection extends ConsumerWidget {
             ref.read(vibrationEnabledProvider.notifier).setEnabled(value);
           },
         ),
+      ],
+    );
+  }
+}
+
+class _StreakReminderSection extends StatefulWidget {
+  const _StreakReminderSection();
+
+  @override
+  State<_StreakReminderSection> createState() => _StreakReminderSectionState();
+}
+
+class _StreakReminderSectionState extends State<_StreakReminderSection> {
+  late bool _enabled;
+  late TimeOfDay _time;
+  late TextEditingController _textController;
+
+  @override
+  void initState() {
+    super.initState();
+    _enabled = GameStorage.loadReminderEnabled();
+    final parts = GameStorage.loadReminderTime().split(':');
+    _time = TimeOfDay(
+      hour: int.tryParse(parts[0].trim())?.clamp(0, 23) ?? 19,
+      minute: parts.length > 1 ? (int.tryParse(parts[1].trim())?.clamp(0, 59) ?? 0) : 0,
+    );
+    _textController = TextEditingController(text: GameStorage.loadReminderText());
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  String _timeToStorage(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _rescheduleIfEnabled(AppLocalizations l10n) async {
+    if (!_enabled) return;
+    var body = _textController.text.trim();
+    if (body.isEmpty) body = l10n.streakReminderDefaultMessage;
+    await GameStorage.saveReminderText(body);
+    await StreakReminderService.scheduleDaily(
+      hour: _time.hour,
+      minute: _time.minute,
+      title: l10n.appTitle,
+      body: body,
+    );
+  }
+
+  Future<void> _onToggle(bool value) async {
+    final l10n = AppLocalizations.of(context)!;
+    if (value) {
+      final ok = await StreakReminderService.requestNotificationPermission();
+      if (!mounted) return;
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.notificationPermissionDenied)),
+        );
+        return;
+      }
+      await GameStorage.saveReminderEnabled(true);
+      await GameStorage.saveReminderTime(_timeToStorage(_time));
+      var body = _textController.text.trim();
+      if (body.isEmpty) {
+        body = l10n.streakReminderDefaultMessage;
+        _textController.text = body;
+      }
+      await GameStorage.saveReminderText(body);
+      await StreakReminderService.scheduleDaily(
+        hour: _time.hour,
+        minute: _time.minute,
+        title: l10n.appTitle,
+        body: body,
+      );
+      setState(() => _enabled = true);
+    } else {
+      await GameStorage.saveReminderEnabled(false);
+      await StreakReminderService.cancelReminder();
+      setState(() => _enabled = false);
+    }
+  }
+
+  Future<void> _pickTime() async {
+    final l10n = AppLocalizations.of(context)!;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _time,
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _time = picked);
+    await GameStorage.saveReminderTime(_timeToStorage(picked));
+    await _rescheduleIfEnabled(l10n);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.streakReminder,
+          style: theme.textTheme.titleSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(l10n.streakReminder),
+          subtitle: Text(
+            l10n.streakReminderSubtitle,
+            style: theme.textTheme.bodySmall,
+          ),
+          value: _enabled,
+          onChanged: _onToggle,
+        ),
+        if (_enabled) ...[
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.schedule),
+            title: Text(l10n.streakReminderTime),
+            trailing: Text(
+              MaterialLocalizations.of(context).formatTimeOfDay(
+                _time,
+                alwaysUse24HourFormat: MediaQuery.of(context).alwaysUse24HourFormat,
+              ),
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            onTap: _pickTime,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: TextField(
+              controller: _textController,
+              decoration: InputDecoration(
+                labelText: l10n.streakReminderMessage,
+                hintText: l10n.streakReminderMessageHint,
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+              maxLines: 2,
+              maxLength: 200,
+              textCapitalization: TextCapitalization.sentences,
+              onEditingComplete: () async {
+                FocusScope.of(context).unfocus();
+                await GameStorage.saveReminderText(_textController.text.trim());
+                await _rescheduleIfEnabled(l10n);
+              },
+            ),
+          ),
+        ],
       ],
     );
   }

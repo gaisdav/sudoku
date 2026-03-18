@@ -66,6 +66,34 @@
   "resetStatisticsConfirmMessage": "Se borrarán todas las victorias y mejores tiempos. No se puede deshacer.",
   "reset": "Restablecer",
   "resetStatistics": "Restablecer estadísticas",
+  "progress": "Progreso",
+  "viewProgress": "Ver progreso",
+  "activityCalendar": "Calendario de actividad",
+  "streak": "Racha",
+  "currentStreakDays": "Actual: {count} días",
+  "@currentStreakDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bestStreakDays": "Mejor: {count} días",
+  "@bestStreakDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "streakHint": "Juega al menos un puzzle al día para mantener tu racha.",
+  "streakReminder": "Recordatorio diario",
+  "streakReminderSubtitle": "Recibe un aviso para no perder un día y tu racha.",
+  "streakReminderTime": "Hora del recordatorio",
+  "streakReminderMessage": "Texto de la notificación",
+  "streakReminderMessageHint": "Mensaje que verás en la notificación",
+  "streakReminderDefaultMessage": "¡Juega al Sudoku hoy y mantén tu racha!",
+  "notificationPermissionDenied": "Las notificaciones están desactivadas. Actívalas en los ajustes del sistema.",
   "lightTheme": "Tema claro",
   "darkTheme": "Tema oscuro",
   "followSystem": "Según el sistema"

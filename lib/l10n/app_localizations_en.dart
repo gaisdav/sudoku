@@ -234,6 +234,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resetStatistics => 'Reset statistics';
 
   @override
+  String get progress => 'Progress';
+
+  @override
+  String get viewProgress => 'View progress';
+
+  @override
+  String get activityCalendar => 'Activity calendar';
+
+  @override
+  String get streak => 'Streak';
+
+  @override
+  String currentStreakDays(int count) {
+    return 'Current: $count days';
+  }
+
+  @override
+  String bestStreakDays(int count) {
+    return 'Best: $count days';
+  }
+
+  @override
+  String get streakHint =>
+      'Play at least one puzzle per day to keep your streak.';
+
+  @override
+  String get streakReminder => 'Daily reminder';
+
+  @override
+  String get streakReminderSubtitle =>
+      'Get notified so you don’t miss a day and lose your streak.';
+
+  @override
+  String get streakReminderTime => 'Reminder time';
+
+  @override
+  String get streakReminderMessage => 'Notification text';
+
+  @override
+  String get streakReminderMessageHint => 'Message shown in the notification';
+
+  @override
+  String get streakReminderDefaultMessage =>
+      'Play Sudoku today — keep your streak!';
+
+  @override
+  String get notificationPermissionDenied =>
+      'Notifications are off. Enable them in system settings.';
+
+  @override
   String get lightTheme => 'Light theme';
 
   @override

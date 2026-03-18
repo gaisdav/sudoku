@@ -66,6 +66,34 @@
   "resetStatisticsConfirmMessage": "Все победы и лучшие времена будут удалены. Это нельзя отменить.",
   "reset": "Сбросить",
   "resetStatistics": "Сбросить статистику",
+  "progress": "Прогресс",
+  "viewProgress": "Смотреть прогресс",
+  "activityCalendar": "Календарь активности",
+  "streak": "Серия",
+  "currentStreakDays": "Текущая: {count} дн.",
+  "@currentStreakDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bestStreakDays": "Лучшая: {count} дн.",
+  "@bestStreakDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "streakHint": "Играйте хотя бы одну головоломку в день, чтобы не потерять серию.",
+  "streakReminder": "Ежедневное напоминание",
+  "streakReminderSubtitle": "Уведомление, чтобы не пропустить день и не потерять серию.",
+  "streakReminderTime": "Время напоминания",
+  "streakReminderMessage": "Текст уведомления",
+  "streakReminderMessageHint": "Текст в уведомлении",
+  "streakReminderDefaultMessage": "Сыграйте в судоку сегодня — сохраните серию!",
+  "notificationPermissionDenied": "Уведомления выключены. Включите их в настройках системы.",
   "lightTheme": "Светлая тема",
   "darkTheme": "Тёмная тема",
   "followSystem": "Как в системе"
