@@ -72,7 +72,16 @@ class StreakReminderService {
 
   static Future<void> cancelReminder() async {
     await init();
-    await _plugin.cancel(_notificationId);
+    try {
+      await _plugin.cancel(_notificationId);
+    } catch (e, st) {
+      // Release + R8 или битый кэш планировщика могли давать PlatformException;
+      // не блокируем запуск приложения.
+      assert(() {
+        debugPrint('StreakReminderService.cancelReminder: $e\n$st');
+        return true;
+      }());
+    }
   }
 
   /// Schedules daily notification at [hour]:[minute] local time. [body] must be non-empty.
@@ -130,19 +139,26 @@ class StreakReminderService {
     required String defaultTitle,
     required String defaultBody,
   }) async {
-    await init();
-    if (!GameStorage.loadReminderEnabled()) {
-      await cancelReminder();
-      return;
+    try {
+      await init();
+      if (!GameStorage.loadReminderEnabled()) {
+        await cancelReminder();
+        return;
+      }
+      final time = GameStorage.loadReminderTime();
+      final parts = time.split(':');
+      final h = int.tryParse(parts[0].trim())?.clamp(0, 23) ?? 19;
+      final m =
+          int.tryParse(parts.length > 1 ? parts[1].trim() : '0')?.clamp(0, 59) ??
+              0;
+      var text = GameStorage.loadReminderText().trim();
+      if (text.isEmpty) text = defaultBody;
+      await scheduleDaily(hour: h, minute: m, title: defaultTitle, body: text);
+    } catch (e, st) {
+      assert(() {
+        debugPrint('StreakReminderService.applyFromStorage: $e\n$st');
+        return true;
+      }());
     }
-    final time = GameStorage.loadReminderTime();
-    final parts = time.split(':');
-    final h = int.tryParse(parts[0].trim())?.clamp(0, 23) ?? 19;
-    final m =
-        int.tryParse(parts.length > 1 ? parts[1].trim() : '0')?.clamp(0, 59) ??
-            0;
-    var text = GameStorage.loadReminderText().trim();
-    if (text.isEmpty) text = defaultBody;
-    await scheduleDaily(hour: h, minute: m, title: defaultTitle, body: text);
   }
 }
