@@ -53,7 +53,8 @@ class SudokuApp extends ConsumerStatefulWidget {
   ConsumerState<SudokuApp> createState() => _SudokuAppState();
 }
 
-class _SudokuAppState extends ConsumerState<SudokuApp> with WidgetsBindingObserver {
+class _SudokuAppState extends ConsumerState<SudokuApp>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
@@ -92,7 +93,8 @@ class _SudokuAppState extends ConsumerState<SudokuApp> with WidgetsBindingObserv
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
-    final accentIndex = ref.watch(accentIndexProvider).clamp(0, accentColorOptions.length - 1);
+    final accentIndex =
+        ref.watch(accentIndexProvider).clamp(0, accentColorOptions.length - 1);
     final accentColor = accentColorOptions[accentIndex];
     final lightColors = AppColors.lightWithAccent(accentColor);
     final darkColors = AppColors.darkWithAccent(accentColor);
@@ -135,4 +137,3 @@ class _SudokuAppState extends ConsumerState<SudokuApp> with WidgetsBindingObserv
     );
   }
 }
-

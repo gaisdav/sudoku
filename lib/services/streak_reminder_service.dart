@@ -10,7 +10,8 @@ import 'game_storage.dart';
 class StreakReminderService {
   StreakReminderService._();
 
-  static final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  static final FlutterLocalNotificationsPlugin _plugin =
+      FlutterLocalNotificationsPlugin();
 
   static const int _notificationId = 9001;
   static const String _channelId = 'streak_reminder';
@@ -36,7 +37,8 @@ class StreakReminderService {
       requestSoundPermission: false,
     );
     await _plugin.initialize(
-      const InitializationSettings(android: android, iOS: darwin, macOS: darwin),
+      const InitializationSettings(
+          android: android, iOS: darwin, macOS: darwin),
     );
     _initialized = true;
   }
@@ -46,18 +48,23 @@ class StreakReminderService {
     await init();
     if (kIsWeb) return false;
     if (defaultTargetPlatform == TargetPlatform.android) {
-      final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
       final granted = await android?.requestNotificationsPermission();
       return granted ?? true;
     }
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      final ios = _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
-      final r = await ios?.requestPermissions(alert: true, badge: true, sound: true);
+      final ios = _plugin.resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>();
+      final r =
+          await ios?.requestPermissions(alert: true, badge: true, sound: true);
       return r ?? false;
     }
     if (defaultTargetPlatform == TargetPlatform.macOS) {
-      final mac = _plugin.resolvePlatformSpecificImplementation<MacOSFlutterLocalNotificationsPlugin>();
-      final r = await mac?.requestPermissions(alert: true, badge: true, sound: true);
+      final mac = _plugin.resolvePlatformSpecificImplementation<
+          MacOSFlutterLocalNotificationsPlugin>();
+      final r =
+          await mac?.requestPermissions(alert: true, badge: true, sound: true);
       return r ?? false;
     }
     return true;
@@ -92,7 +99,8 @@ class StreakReminderService {
       presentBadge: true,
       presentSound: true,
     );
-    const details = NotificationDetails(android: androidDetails, iOS: darwinDetails, macOS: darwinDetails);
+    const details = NotificationDetails(
+        android: androidDetails, iOS: darwinDetails, macOS: darwinDetails);
 
     await _plugin.zonedSchedule(
       _notificationId,
@@ -101,14 +109,16 @@ class StreakReminderService {
       scheduled,
       details,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 
   static tz.TZDateTime _nextInstanceOf(int hour, int minute) {
     final now = tz.TZDateTime.now(tz.local);
-    var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+    var scheduled =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
     if (scheduled.isBefore(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
@@ -128,7 +138,9 @@ class StreakReminderService {
     final time = GameStorage.loadReminderTime();
     final parts = time.split(':');
     final h = int.tryParse(parts[0].trim())?.clamp(0, 23) ?? 19;
-    final m = int.tryParse(parts.length > 1 ? parts[1].trim() : '0')?.clamp(0, 59) ?? 0;
+    final m =
+        int.tryParse(parts.length > 1 ? parts[1].trim() : '0')?.clamp(0, 59) ??
+            0;
     var text = GameStorage.loadReminderText().trim();
     if (text.isEmpty) text = defaultBody;
     await scheduleDaily(hour: h, minute: m, title: defaultTitle, body: text);
