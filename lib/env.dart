@@ -19,6 +19,10 @@ class Env {
 
   // --- AdMob: приоритет --dart-define, затем .env
 
+  /// Реклама включена? false — баннеры, interstitial, rewarded и app open не показываются.
+  static bool get adsEnabled =>
+      getOr('ADS_ENABLED', 'true').toLowerCase() == 'true';
+
   static String get admobAppIdAndroid =>
       _def('ADMOB_APP_ID_ANDROID', dotenv.env['ADMOB_APP_ID_ANDROID']);
 

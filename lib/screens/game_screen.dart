@@ -4,6 +4,7 @@ import 'package:sudoku_dart/sudoku_dart.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../config/app_colors.dart';
+import '../env.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/game_provider.dart';
 import '../utils/vibration_helper.dart'
@@ -445,6 +446,10 @@ void _watchAdsForNoErrorsMode(
     return;
   }
   if (!context.mounted) return;
+  if (!Env.adsEnabled) {
+    notifier.onAppResumed();
+    return;
+  }
   showDialog<void>(
     context: context,
     barrierDismissible: false,
@@ -481,6 +486,20 @@ void showGameOverDialog(BuildContext context, WidgetRef ref, Level difficulty) {
       actions: [
         TextButton(
           onPressed: () {
+            if (!Env.adsEnabled) {
+              ref.read(gameProvider.notifier).clearWrongCells();
+              ref.read(gameProvider.notifier).resetErrors();
+              ref.read(gameProvider.notifier).resetGameOverDialogShown();
+              ref.read(gameProvider.notifier).onAppResumed();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(l10n.adNotAvailableSecondChance),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+              Navigator.of(context).pop();
+              return;
+            }
             showDialog<void>(
               context: context,
               barrierDismissible: false,
@@ -608,6 +627,16 @@ class _GameScreenBody extends ConsumerWidget {
               tooltip: l10n.timedAddTimeAd,
               onPressed: () {
                 notifier.pauseTimer();
+                if (!Env.adsEnabled) {
+                  notifier.onAppResumed();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(l10n.adNotAvailableTimedBonus),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                  return;
+                }
                 showDialog<void>(
                   context: context,
                   barrierDismissible: false,
@@ -944,6 +973,24 @@ class _GameScreenBody extends ConsumerWidget {
                                                       return;
                                                     }
                                                     notifier.onAppPaused();
+                                                    if (!Env.adsEnabled) {
+                                                      notifier.applyHintFromAd();
+                                                      notifier.onAppResumed();
+                                                      ScaffoldMessenger.of(
+                                                              context)
+                                                          .showSnackBar(
+                                                        SnackBar(
+                                                          content: Text(
+                                                              AppLocalizations.of(
+                                                                      context)!
+                                                                  .adNotAvailableHintApplied),
+                                                          duration:
+                                                              const Duration(
+                                                                  seconds: 2),
+                                                        ),
+                                                      );
+                                                      return;
+                                                    }
                                                     showDialog<void>(
                                                       context: context,
                                                       barrierDismissible: false,
@@ -1037,6 +1084,22 @@ class _GameScreenBody extends ConsumerWidget {
     }
     notifier.onAppPaused();
     if (!context.mounted) return;
+    if (!Env.adsEnabled) {
+      if (state.difficulty == Level.expert) {
+        notifier.performUndoAfterAd();
+      } else {
+        notifier.refillUndoAfterAd();
+      }
+      notifier.onAppResumed();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text(AppLocalizations.of(context)!.adNotAvailableUndoApplied),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
     showDialog<void>(
       context: context,
       barrierDismissible: false,
