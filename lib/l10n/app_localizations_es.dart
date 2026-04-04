@@ -264,8 +264,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get streakHint =>
-      'Juega al menos un puzzle al día para mantener tu racha.';
+  String get streakHint => 'Juega cada día para que tu racha no se apague.';
 
   @override
   String get streakReminder => 'Recordatorio diario';
@@ -291,25 +290,6 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get notificationPermissionDenied =>
       'Las notificaciones están desactivadas. Actívalas en los ajustes del sistema.';
-
-  @override
-  String get dailyChallenge => 'Desafío diario';
-
-  @override
-  String get dailyChallengeTapSubtitle =>
-      'Un puzzle al día en la dificultad que elijas abajo.';
-
-  @override
-  String get dailyCompletedToday => 'Hecho hoy';
-
-  @override
-  String get dailyChallengeDifficulty => 'Dificultad del desafío diario';
-
-  @override
-  String get dailyChallengeCompletedLine => '¡Desafío diario completado!';
-
-  @override
-  String get dailyPlayAgain => 'Jugar otra vez';
 
   @override
   String get lightTheme => 'Tema claro';

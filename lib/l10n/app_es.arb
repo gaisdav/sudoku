@@ -81,7 +81,7 @@
       }
     }
   },
-  "streakHint": "Juega al menos un puzzle al día para mantener tu racha.",
+  "streakHint": "Juega cada día para que tu racha no se apague.",
   "streakReminder": "Recordatorio diario",
   "streakReminderSubtitle": "Recibe un aviso para no perder un día y tu racha.",
   "streakReminderTime": "Hora del recordatorio",
@@ -89,12 +89,6 @@
   "streakReminderMessageHint": "Mensaje que verás en la notificación",
   "streakReminderDefaultMessage": "¡Juega al Sudoku hoy y mantén tu racha!",
   "notificationPermissionDenied": "Las notificaciones están desactivadas. Actívalas en los ajustes del sistema.",
-  "dailyChallenge": "Desafío diario",
-  "dailyChallengeTapSubtitle": "Un puzzle al día en la dificultad que elijas abajo.",
-  "dailyCompletedToday": "Hecho hoy",
-  "dailyChallengeDifficulty": "Dificultad del desafío diario",
-  "dailyChallengeCompletedLine": "¡Desafío diario completado!",
-  "dailyPlayAgain": "Jugar otra vez",
   "lightTheme": "Tema claro",
   "darkTheme": "Tema oscuro",
   "followSystem": "Según el sistema",

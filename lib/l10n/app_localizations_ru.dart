@@ -265,7 +265,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get streakHint =>
-      'Играйте хотя бы одну головоломку в день, чтобы не потерять серию.';
+      'Заходите в игру каждый день, чтобы серия не обнулилась.';
 
   @override
   String get streakReminder => 'Ежедневное напоминание';
@@ -290,25 +290,6 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get notificationPermissionDenied =>
       'Уведомления выключены. Включите их в настройках системы.';
-
-  @override
-  String get dailyChallenge => 'Ежедневный вызов';
-
-  @override
-  String get dailyChallengeTapSubtitle =>
-      'Одна головоломка в день на выбранной ниже сложности.';
-
-  @override
-  String get dailyCompletedToday => 'Сегодня выполнено';
-
-  @override
-  String get dailyChallengeDifficulty => 'Сложность ежедневного вызова';
-
-  @override
-  String get dailyChallengeCompletedLine => 'Ежедневный вызов пройден!';
-
-  @override
-  String get dailyPlayAgain => 'Сыграть снова';
 
   @override
   String get lightTheme => 'Светлая тема';

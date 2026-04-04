@@ -5,7 +5,7 @@ import '../services/game_storage.dart';
 /// Version bump to invalidate activity-dependent providers when a new activity date is saved.
 final activityDatesVersionProvider = StateProvider<int>((ref) => 0);
 
-/// List of activity date strings (yyyy-MM-dd), sorted. Ready for calendar (этап 1) and streak (этап 2).
+/// List of activity date strings (yyyy-MM-dd), sorted — days with at least one in-game move. Calendar + streak.
 final activityDatesProvider = Provider<List<String>>((ref) {
   ref.watch(activityDatesVersionProvider);
   return GameStorage.loadActivityDates();

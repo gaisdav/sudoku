@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:sudoku_dart/sudoku_dart.dart';
 
 import '../l10n/app_localizations.dart';
@@ -386,70 +385,6 @@ class _MainTabContent extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 20),
-              Builder(
-                builder: (context) {
-                  final dailyDoneToday =
-                      GameStorage.loadDailyCompletedDate() == GameStorage.todayDateKey();
-                  final theme = Theme.of(context);
-                  final dateStr = DateFormat.yMMMMd(
-                    Localizations.localeOf(context).toString(),
-                  ).format(DateTime.now());
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4, bottom: 8),
-                        child: Text(
-                          dateStr,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      FilledButton.icon(
-                        onPressed: () {
-                          InterstitialAdService.tryShowInterstitial(
-                            context,
-                            InterstitialTrigger.startNewGame,
-                            onDone: () {
-                              if (!context.mounted) return;
-                              Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => const GameScreen(dailyChallenge: true),
-                                ),
-                              ).then((_) {
-                                if (context.mounted) onRefresh();
-                              });
-                            },
-                          );
-                        },
-                        icon: const Icon(Icons.today_rounded),
-                        label: Text(l10n.dailyChallenge),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
-                        child: Text(
-                          dailyDoneToday
-                              ? l10n.dailyCompletedToday
-                              : l10n.dailyChallengeTapSubtitle,
-                          style: dailyDoneToday
-                              ? theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.35,
-                                )
-                              : theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  height: 1.35,
-                                ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 20),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -695,8 +630,6 @@ class _SettingsTabContent extends StatelessWidget {
       children: const [
         _SettingsSection(),
         SizedBox(height: 24),
-        _DailyChallengeDifficultySection(),
-        SizedBox(height: 24),
         _StreakReminderSection(),
       ],
     );
@@ -845,64 +778,6 @@ class _SettingsSection extends ConsumerWidget {
           value: ref.watch(vibrationEnabledProvider),
           onChanged: (value) {
             ref.read(vibrationEnabledProvider.notifier).setEnabled(value);
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _DailyChallengeDifficultySection extends StatefulWidget {
-  const _DailyChallengeDifficultySection();
-
-  @override
-  State<_DailyChallengeDifficultySection> createState() =>
-      _DailyChallengeDifficultySectionState();
-}
-
-class _DailyChallengeDifficultySectionState extends State<_DailyChallengeDifficultySection> {
-  late int _levelIndex;
-
-  @override
-  void initState() {
-    super.initState();
-    _levelIndex = GameStorage.loadDailyChallengeLevelIndex();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final names = [
-      l10n.levelEasy,
-      l10n.levelMedium,
-      l10n.levelHard,
-      l10n.levelExpert,
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.dailyChallengeDifficulty,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<int>(
-          initialValue: _levelIndex,
-          decoration: const InputDecoration(
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            border: OutlineInputBorder(),
-          ),
-          items: List.generate(4, (i) {
-            return DropdownMenuItem(value: i, child: Text(names[i]));
-          }),
-          onChanged: (v) async {
-            if (v == null || v == _levelIndex) return;
-            setState(() => _levelIndex = v);
-            await GameStorage.saveDailyChallengeLevelIndex(v);
-            await GameStorage.clearDailyInProgress();
           },
         ),
       ],

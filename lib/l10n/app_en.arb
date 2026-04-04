@@ -164,7 +164,7 @@
       }
     }
   },
-  "streakHint": "Play at least one puzzle per day to keep your streak.",
+  "streakHint": "Play every day so your streak doesn’t burn out.",
   "streakReminder": "Daily reminder",
   "streakReminderSubtitle": "Get notified so you don’t miss a day and lose your streak.",
   "streakReminderTime": "Reminder time",
@@ -172,12 +172,6 @@
   "streakReminderMessageHint": "Message shown in the notification",
   "streakReminderDefaultMessage": "Play Sudoku today — keep your streak!",
   "notificationPermissionDenied": "Notifications are off. Enable them in system settings.",
-  "dailyChallenge": "Daily challenge",
-  "dailyChallengeTapSubtitle": "One puzzle per day at the difficulty you set below.",
-  "dailyCompletedToday": "Done today",
-  "dailyChallengeDifficulty": "Daily challenge difficulty",
-  "dailyChallengeCompletedLine": "Daily challenge completed!",
-  "dailyPlayAgain": "Play again",
   "lightTheme": "Light theme",
   "darkTheme": "Dark theme",
   "followSystem": "Follow system",

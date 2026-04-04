@@ -81,7 +81,7 @@
       }
     }
   },
-  "streakHint": "Играйте хотя бы одну головоломку в день, чтобы не потерять серию.",
+  "streakHint": "Заходите в игру каждый день, чтобы серия не обнулилась.",
   "streakReminder": "Ежедневное напоминание",
   "streakReminderSubtitle": "Уведомление, чтобы не пропустить день и не потерять серию.",
   "streakReminderTime": "Время напоминания",
@@ -89,12 +89,6 @@
   "streakReminderMessageHint": "Текст в уведомлении",
   "streakReminderDefaultMessage": "Сыграйте в судоку сегодня — сохраните серию!",
   "notificationPermissionDenied": "Уведомления выключены. Включите их в настройках системы.",
-  "dailyChallenge": "Ежедневный вызов",
-  "dailyChallengeTapSubtitle": "Одна головоломка в день на выбранной ниже сложности.",
-  "dailyCompletedToday": "Сегодня выполнено",
-  "dailyChallengeDifficulty": "Сложность ежедневного вызова",
-  "dailyChallengeCompletedLine": "Ежедневный вызов пройден!",
-  "dailyPlayAgain": "Сыграть снова",
   "lightTheme": "Светлая тема",
   "darkTheme": "Тёмная тема",
   "followSystem": "Как в системе",

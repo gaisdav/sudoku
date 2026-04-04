@@ -547,7 +547,7 @@ abstract class AppLocalizations {
   /// No description provided for @streakHint.
   ///
   /// In en, this message translates to:
-  /// **'Play at least one puzzle per day to keep your streak.'**
+  /// **'Play every day so your streak doesn’t burn out.'**
   String get streakHint;
 
   /// No description provided for @streakReminder.
@@ -591,42 +591,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notifications are off. Enable them in system settings.'**
   String get notificationPermissionDenied;
-
-  /// No description provided for @dailyChallenge.
-  ///
-  /// In en, this message translates to:
-  /// **'Daily challenge'**
-  String get dailyChallenge;
-
-  /// No description provided for @dailyChallengeTapSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'One puzzle per day at the difficulty you set below.'**
-  String get dailyChallengeTapSubtitle;
-
-  /// No description provided for @dailyCompletedToday.
-  ///
-  /// In en, this message translates to:
-  /// **'Done today'**
-  String get dailyCompletedToday;
-
-  /// No description provided for @dailyChallengeDifficulty.
-  ///
-  /// In en, this message translates to:
-  /// **'Daily challenge difficulty'**
-  String get dailyChallengeDifficulty;
-
-  /// No description provided for @dailyChallengeCompletedLine.
-  ///
-  /// In en, this message translates to:
-  /// **'Daily challenge completed!'**
-  String get dailyChallengeCompletedLine;
-
-  /// No description provided for @dailyPlayAgain.
-  ///
-  /// In en, this message translates to:
-  /// **'Play again'**
-  String get dailyPlayAgain;
 
   /// No description provided for @lightTheme.
   ///

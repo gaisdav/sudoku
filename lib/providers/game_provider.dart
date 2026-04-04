@@ -239,15 +239,6 @@ class GameNotifier extends StateNotifier<GameState> {
   Timer? _justCompletedTimer;
   Timer? _conflictFlashTimer;
 
-  /// When true, progress is saved to [GameStorage.saveDailyGame], not normal continue slot.
-  bool _isDailySession = false;
-  bool get isDailySession => _isDailySession;
-
-  static String _todayKey() {
-    final n = DateTime.now();
-    return '${n.year.toString().padLeft(4, '0')}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
-  }
-
   static Set<String> _completeRegionIds(GameState s) {
     final set = <String>{};
     for (int r = 0; r < 9; r++) {
@@ -288,7 +279,6 @@ class GameNotifier extends StateNotifier<GameState> {
   /// Call once after storage is ready. Loads saved game or starts new with [level].
   /// When returning to an already loaded game (Continue), restarts the timer if game not won.
   void ensureGameStarted([Level level = Level.easy]) {
-    _isDailySession = false;
     final saved = GameStorage.loadGame();
     if (saved != null) {
       if (state.isWon) state = _initialState();
@@ -301,83 +291,6 @@ class GameNotifier extends StateNotifier<GameState> {
       state = _initialState();
     }
     newGame(level);
-  }
-
-  /// Daily challenge: one puzzle per calendar day for selected difficulty (separate from Continue).
-  void startDailyChallenge() {
-    _isDailySession = true;
-    _stopTimer();
-    if (state.isWon) state = _initialState();
-
-    final today = _todayKey();
-    final levelIndex = GameStorage.loadDailyChallengeLevelIndex();
-    final level = Level.values[levelIndex.clamp(0, Level.values.length - 1)];
-
-    final saved = GameStorage.loadDailyGame();
-    final savedDate = saved?[GameStorage.keyDailyDate]?.toString();
-    final savedDiff = (saved?[GameStorage.keyDifficulty] as num?)?.toInt();
-
-    if (saved != null &&
-        savedDate == today &&
-        savedDiff == levelIndex &&
-        saved[GameStorage.keyCellValues] != null &&
-        (saved[GameStorage.keyCellValues] as List).length == 81) {
-      _restoreGame(saved);
-      if (!state.isWon) {
-        _startTimer();
-        return;
-      }
-    }
-    _startFreshDailyPuzzle(today, level, levelIndex);
-  }
-
-  void _startFreshDailyPuzzle(String today, Level level, int levelIndex) {
-    List<int> puzzle;
-    List<int> solution;
-    final cache = GameStorage.loadDailyPuzzleCache(today, levelIndex);
-    if (cache != null && cache['puzzle'] is List && cache['solution'] is List) {
-      puzzle = (cache['puzzle'] as List).map((e) => (e as num).toInt()).toList();
-      solution = (cache['solution'] as List).map((e) => (e as num).toInt()).toList();
-      if (puzzle.length != 81 || solution.length != 81) {
-        puzzle = [];
-        solution = [];
-      }
-    } else {
-      puzzle = [];
-      solution = [];
-    }
-    if (puzzle.isEmpty) {
-      final sudoku = Sudoku.generate(level);
-      puzzle = sudoku.puzzle;
-      solution = sudoku.solution;
-      if (puzzle.isEmpty || solution.isEmpty) {
-        state = _initialState();
-        return;
-      }
-      GameStorage.saveDailyPuzzleCache(today, levelIndex, puzzle, solution);
-    }
-    state = GameState(
-      cells: puzzleToCells(puzzle),
-      solution: List<int>.from(solution),
-      selectedCellIndex: null,
-      isWon: false,
-      difficulty: level,
-      elapsedSeconds: 0,
-      hintsUsedThisGame: 0,
-      errorsMade: 0,
-      cellNotes: _emptyCellNotes(),
-      undoStack: [],
-      undoRemaining: _maxUndoForLevel(level),
-      isTimedMode: false,
-      timedRemainingSeconds: 0,
-      timedInitialLimitSeconds: 0,
-      timedBonusSecondsAdded: 0,
-      isTimedOut: false,
-      timedThirtySecondWarned: false,
-    );
-    _revalidateWrong();
-    _startTimer();
-    _persistGame();
   }
 
   void _restoreGame(Map<String, dynamic> data) {
@@ -486,9 +399,7 @@ class GameNotifier extends StateNotifier<GameState> {
   /// Ends the game and clears saved data (e.g. after Game Over → Back to menu). Continue will no longer restore this game.
   Future<void> endGameAndClearSave() async {
     _stopTimer();
-    if (_isDailySession) {
-      await GameStorage.saveDailyGame(null);
-    } else if (state.isTimedMode) {
+    if (state.isTimedMode) {
       await GameStorage.saveTimedGame(null);
     } else {
       await GameStorage.saveGame(null);
@@ -515,12 +426,16 @@ class GameNotifier extends StateNotifier<GameState> {
       data[GameStorage.keyTimedBonusSeconds] = state.timedBonusSecondsAdded;
       data[GameStorage.keyTimedWarned30] = state.timedThirtySecondWarned;
       await GameStorage.saveTimedGame(data);
-    } else if (_isDailySession) {
-      data[GameStorage.keyDailyDate] = _todayKey();
-      await GameStorage.saveDailyGame(data);
     } else {
       await GameStorage.saveGame(data);
     }
+  }
+
+  /// Streak / calendar: first qualifying interaction of the local day adds today's date.
+  void _bumpActivityStreak() {
+    GameStorage.saveActivityDate(DateTime.now()).then((added) {
+      if (added) _ref.read(activityDatesVersionProvider.notifier).state++;
+    });
   }
 
   void _newGame(Level level) {
@@ -562,7 +477,6 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// Countdown mode: separate save, limits Easy 15 / Medium 12 / Hard 8 / Expert 5 min.
   void startTimedGame(Level level) {
-    _isDailySession = false;
     _stopTimer();
     final sudoku = Sudoku.generate(level);
     final puzzle = sudoku.puzzle;
@@ -602,7 +516,6 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// Returns false if there was no save or restore failed (save cleared).
   bool continueTimedGame() {
-    _isDailySession = false;
     _stopTimer();
     final saved = GameStorage.loadTimedGame();
     if (saved == null) {
@@ -815,6 +728,7 @@ class GameNotifier extends StateNotifier<GameState> {
       newNotes[idx] = notes;
       state = state.copyWith(cellNotes: newNotes);
       _persistGame();
+      _bumpActivityStreak();
       return;
     }
 
@@ -840,6 +754,7 @@ class GameNotifier extends StateNotifier<GameState> {
     newNotes[idx] = notes;
     state = state.copyWith(cellNotes: newNotes);
     _persistGame();
+    _bumpActivityStreak();
   }
 
   /// Performs one undo (when user has free undos). Returns false if stack empty or no remaining.
@@ -901,6 +816,7 @@ class GameNotifier extends StateNotifier<GameState> {
     newNotes[idx] = <int>{};
     state = state.copyWith(cellNotes: newNotes);
     _persistGame();
+    _bumpActivityStreak();
   }
 
   /// Sets digit in selected cell (or at index). Only editable non-original cells. Clears notes in that cell.
@@ -939,6 +855,7 @@ class GameNotifier extends StateNotifier<GameState> {
       _triggerRegionCompleteHaptic();
     }
     _persistGame();
+    _bumpActivityStreak();
     _checkWin();
   }
 
@@ -955,6 +872,7 @@ class GameNotifier extends StateNotifier<GameState> {
     state = state.copyWith(cells: newCells);
     _revalidateWrong();
     _persistGame();
+    _bumpActivityStreak();
   }
 
   /// Clears all wrong cells (non-original) to give a "second chance" after watching ad.
@@ -971,6 +889,7 @@ class GameNotifier extends StateNotifier<GameState> {
     state = state.copyWith(cells: newCells);
     _revalidateWrong();
     _persistGame();
+    _bumpActivityStreak();
   }
 
   void markGameOverDialogShown() {
@@ -1100,6 +1019,7 @@ class GameNotifier extends StateNotifier<GameState> {
       _triggerRegionCompleteHaptic();
     }
     _persistGame();
+    _bumpActivityStreak();
     _checkWin();
     return true;
   }
@@ -1113,23 +1033,12 @@ class GameNotifier extends StateNotifier<GameState> {
     if (state.isTimedMode) {
       await GameStorage.saveTimedGame(null);
       state = state.copyWith(isWon: true, previousBestTimeForLevel: null);
-      GameStorage.saveActivityDate(DateTime.now()).then((_) {
-        _ref.read(activityDatesVersionProvider.notifier).state++;
-      });
       return;
     }
     final prevBest = GameStorage.loadBestTimeByLevel()[state.difficulty.index];
     await _persistStats();
-    if (_isDailySession) {
-      await GameStorage.saveDailyCompletedDate(_todayKey());
-      await GameStorage.saveDailyGame(null);
-    } else {
-      await GameStorage.saveGame(null);
-    }
+    await GameStorage.saveGame(null);
     state = state.copyWith(isWon: true, previousBestTimeForLevel: prevBest);
-    GameStorage.saveActivityDate(DateTime.now()).then((_) {
-      _ref.read(activityDatesVersionProvider.notifier).state++;
-    });
   }
 
   Future<void> _persistStats() async {
@@ -1151,7 +1060,6 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 
   void newGame([Level? level]) {
-    _isDailySession = false;
     _newGame(level ?? state.difficulty);
   }
 }

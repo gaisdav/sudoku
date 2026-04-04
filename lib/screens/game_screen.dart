@@ -22,7 +22,6 @@ class GameScreen extends ConsumerStatefulWidget {
     super.key,
     this.continueLast = false,
     this.newGameLevel,
-    this.dailyChallenge = false,
     this.continueTimed = false,
     this.timedNewGame = false,
     this.timedNewLevel,
@@ -33,9 +32,6 @@ class GameScreen extends ConsumerStatefulWidget {
 
   /// Open and start new game with this level (from home difficulty choice).
   final Level? newGameLevel;
-
-  /// Daily challenge (separate save slot; difficulty from settings).
-  final bool dailyChallenge;
 
   /// Continue time-attack save (separate slot).
   final bool continueTimed;
@@ -72,8 +68,6 @@ class _GameScreenState extends ConsumerState<GameScreen>
       }
       if (widget.timedNewGame && widget.timedNewLevel != null) {
         notifier.startTimedGame(widget.timedNewLevel!);
-      } else if (widget.dailyChallenge) {
-        notifier.startDailyChallenge();
       } else if (widget.continueLast) {
         notifier.ensureGameStarted();
       } else if (widget.newGameLevel != null) {
@@ -160,7 +154,6 @@ class _GameScreenState extends ConsumerState<GameScreen>
       if (next.isWon && prev?.isWon != true) {
         final notifier = ref.read(gameProvider.notifier);
         notifier.pauseTimer();
-        final isDaily = notifier.isDailySession;
         final isTimed = next.isTimedMode;
         showDialog<void>(
           context: context,
@@ -261,16 +254,6 @@ class _GameScreenState extends ConsumerState<GameScreen>
                     l10n.victoryDifficulty(levelLabel),
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
-                  if (isDaily) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.dailyChallengeCompletedLine,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                  ],
                   const SizedBox(height: 8),
                   Text(
                     l10n.timeLabel(formatDuration(next.elapsedSeconds)),
@@ -281,18 +264,16 @@ class _GameScreenState extends ConsumerState<GameScreen>
                     l10n.hintsUsedLabel(next.hintsUsedThisGame),
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
-                  if (!isDaily) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      recordText,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: isNewRecord
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).colorScheme.onSurface,
-                          ),
-                    ),
-                  ],
+                  const SizedBox(height: 8),
+                  Text(
+                    recordText,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: isNewRecord
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurface,
+                        ),
+                  ),
                 ],
               ),
               actions: [
@@ -309,34 +290,19 @@ class _GameScreenState extends ConsumerState<GameScreen>
                   },
                   child: Text(l10n.backToMenu),
                 ),
-                if (isDaily)
-                  TextButton(
-                    onPressed: () {
-                      InterstitialAdService.tryShowInterstitial(
-                        context,
-                        InterstitialTrigger.restartYouWon,
-                        onDone: () {
-                          Navigator.of(ctx).pop();
-                          notifier.startDailyChallenge();
-                        },
-                      );
-                    },
-                    child: Text(l10n.dailyPlayAgain),
-                  )
-                else
-                  TextButton(
-                    onPressed: () {
-                      InterstitialAdService.tryShowInterstitial(
-                        context,
-                        InterstitialTrigger.restartYouWon,
-                        onDone: () {
-                          Navigator.of(ctx).pop();
-                          notifier.newGame();
-                        },
-                      );
-                    },
-                    child: Text(l10n.newGame),
-                  ),
+                TextButton(
+                  onPressed: () {
+                    InterstitialAdService.tryShowInterstitial(
+                      context,
+                      InterstitialTrigger.restartYouWon,
+                      onDone: () {
+                        Navigator.of(ctx).pop();
+                        notifier.newGame();
+                      },
+                    );
+                  },
+                  child: Text(l10n.newGame),
+                ),
               ],
             );
           },
@@ -352,9 +318,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
       }
     });
 
-    return _GameScreenBody(
-      dailyChallenge: widget.dailyChallenge,
-    );
+    return const _GameScreenBody();
   }
 }
 
@@ -579,9 +543,7 @@ void showGameOverDialog(BuildContext context, WidgetRef ref, Level difficulty) {
 }
 
 class _GameScreenBody extends ConsumerWidget {
-  const _GameScreenBody({required this.dailyChallenge});
-
-  final bool dailyChallenge;
+  const _GameScreenBody();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -590,11 +552,7 @@ class _GameScreenBody extends ConsumerWidget {
     final notifier = ref.read(gameProvider.notifier);
     final colors = context.appColors;
     final timed = state.isTimedMode;
-    final title = dailyChallenge
-        ? l10n.dailyChallenge
-        : timed
-            ? l10n.timedModeTitle
-            : l10n.appTitle;
+    final title = timed ? l10n.timedModeTitle : l10n.appTitle;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -704,13 +662,12 @@ class _GameScreenBody extends ConsumerWidget {
               final gameState = ref.watch(gameProvider);
               final colorScheme = Theme.of(context).colorScheme;
               return [
-                if (!dailyChallenge)
-                  PopupMenuItem(
-                    value: 'new',
-                    child: Text(
-                      gameState.isTimedMode ? l10n.timedStartNew : l10n.newGame,
-                    ),
+                PopupMenuItem(
+                  value: 'new',
+                  child: Text(
+                    gameState.isTimedMode ? l10n.timedStartNew : l10n.newGame,
                   ),
+                ),
                 PopupMenuItem(value: 'stats', child: Text(l10n.statistics)),
                 PopupMenuItem<String>(
                   value: 'no_errors',
