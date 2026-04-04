@@ -1099,7 +1099,7 @@ class _HomeContinueButton extends StatelessWidget {
                   fontSize: (theme.textTheme.titleMedium?.fontSize ?? 16) + 2,
                 ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 2),
           LayoutBuilder(
             builder: (context, c) {
               const iconW = 16.0;
