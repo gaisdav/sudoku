@@ -14,6 +14,9 @@ const _kMaxGridSide = 720.0;
 /// Use nearly all of the smaller axis so the board is as large as possible.
 const _kGridSpaceFraction = 1.0;
 
+/// Воздух по горизонтали между краем области и доской (с каждой стороны).
+const _kBoardHorizontalInset = 12.0;
+
 /// Gap between 3×3 blocks (replaces drawn lines). Smaller = larger cells.
 const _blockGap = 4.0;
 const _cellSpacing = 0.5;
@@ -30,7 +33,8 @@ class SudokuGrid extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final availableWidth = constraints.maxWidth.clamp(0.0, double.infinity);
+        final availableWidth = (constraints.maxWidth - _kBoardHorizontalInset * 2)
+            .clamp(0.0, double.infinity);
         final availableHeight =
             constraints.maxHeight.clamp(0.0, double.infinity);
         final available = min(availableWidth, availableHeight);
