@@ -1,9 +1,13 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/activity_streak_provider.dart';
 import '../services/game_storage.dart';
+import '../services/streak_reminder_service.dart';
 
 String formatDuration(int seconds) {
   final m = seconds ~/ 60;
@@ -75,6 +79,14 @@ Future<void> showStatsDialog(BuildContext context, {WidgetRef? ref}) {
                   if (confirm == true && context.mounted) {
                     await GameStorage.resetStats();
                     ref?.read(activityDatesVersionProvider.notifier).state++;
+                    if (!kIsWeb) {
+                      unawaited(StreakReminderService.applyFromStorage(
+                        defaultTitle: StreakReminderService
+                            .defaultReminderTitleFallback,
+                        defaultBody: StreakReminderService
+                            .defaultReminderBodyFallback,
+                      ));
+                    }
                     setState(() {});
                   }
                 },

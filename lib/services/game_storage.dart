@@ -246,6 +246,11 @@ class GameStorage {
     return true;
   }
 
+  /// Whether today's local calendar date is already in the activity list (played / had a move today).
+  static bool hasActivityToday() {
+    return loadActivityDates().contains(_dateToKey(DateTime.now()));
+  }
+
   /// Returns list of activity date strings (yyyy-MM-dd), sorted. Empty if none.
   static List<String> loadActivityDates() {
     final raw = box.get(_keyActivityDates);

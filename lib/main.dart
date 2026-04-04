@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -29,8 +31,8 @@ void main() async {
   if (!kIsWeb) {
     await StreakReminderService.init();
     await StreakReminderService.applyFromStorage(
-      defaultTitle: 'Sudoku',
-      defaultBody: 'Play today to keep your streak!',
+      defaultTitle: StreakReminderService.defaultReminderTitleFallback,
+      defaultBody: StreakReminderService.defaultReminderBodyFallback,
     );
   }
   // Инициализация AdMob в фоне — не блокируем показ UI (иначе 10+ сек чёрный экран в release).
@@ -84,6 +86,12 @@ class _SudokuAppState extends ConsumerState<SudokuApp>
         break;
       case AppLifecycleState.resumed:
         AppOpenAdService.maybeShowResume();
+        if (!kIsWeb) {
+          unawaited(StreakReminderService.applyFromStorage(
+            defaultTitle: StreakReminderService.defaultReminderTitleFallback,
+            defaultBody: StreakReminderService.defaultReminderBodyFallback,
+          ));
+        }
         break;
       case AppLifecycleState.detached:
         break;

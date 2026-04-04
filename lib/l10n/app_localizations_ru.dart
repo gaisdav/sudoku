@@ -272,7 +272,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get streakReminderSubtitle =>
-      'Уведомление, чтобы не пропустить день и не потерять серию.';
+      'Только если за сегодня ещё не играли — чтобы не сорвать серию.';
 
   @override
   String get streakReminderTime => 'Время напоминания';
@@ -284,8 +284,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get streakReminderMessageHint => 'Текст в уведомлении';
 
   @override
-  String get streakReminderDefaultMessage =>
-      'Сыграйте в судоку сегодня — сохраните серию!';
+  String get streakReminderDefaultMessage => 'Судоку — сохраните серию!';
 
   @override
   String get notificationPermissionDenied =>

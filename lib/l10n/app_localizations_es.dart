@@ -271,7 +271,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get streakReminderSubtitle =>
-      'Recibe un aviso para no perder un día y tu racha.';
+      'Solo si aún no jugaste ese día — para no perder la racha.';
 
   @override
   String get streakReminderTime => 'Hora del recordatorio';
@@ -284,8 +284,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Mensaje que verás en la notificación';
 
   @override
-  String get streakReminderDefaultMessage =>
-      '¡Juega al Sudoku hoy y mantén tu racha!';
+  String get streakReminderDefaultMessage => 'Sudoku — ¡mantén tu racha!';
 
   @override
   String get notificationPermissionDenied =>

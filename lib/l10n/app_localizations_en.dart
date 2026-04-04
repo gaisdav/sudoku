@@ -269,7 +269,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get streakReminderSubtitle =>
-      'Get notified so you don’t miss a day and lose your streak.';
+      'Only if you haven’t played yet that day — helps keep your streak.';
 
   @override
   String get streakReminderTime => 'Reminder time';
@@ -281,8 +281,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get streakReminderMessageHint => 'Message shown in the notification';
 
   @override
-  String get streakReminderDefaultMessage =>
-      'Play Sudoku today — keep your streak!';
+  String get streakReminderDefaultMessage => 'Sudoku - keep your streak!';
 
   @override
   String get notificationPermissionDenied =>

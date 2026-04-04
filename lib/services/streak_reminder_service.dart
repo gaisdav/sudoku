@@ -10,6 +10,10 @@ import 'game_storage.dart';
 class StreakReminderService {
   StreakReminderService._();
 
+  /// Fallbacks when rescheduling without [AppLocalizations] (e.g. app resume, after a move).
+  static const String defaultReminderTitleFallback = 'Sudoku';
+  static const String defaultReminderBodyFallback = 'Sudoku - keep your streak!';
+
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
@@ -94,7 +98,8 @@ class StreakReminderService {
     await init();
     await cancelReminder();
 
-    final scheduled = _nextInstanceOf(hour, minute);
+    final scheduled = _nextInstanceOf(hour, minute,
+        skipToday: GameStorage.hasActivityToday());
 
     const androidDetails = AndroidNotificationDetails(
       _channelId,
@@ -124,8 +129,15 @@ class StreakReminderService {
     );
   }
 
-  static tz.TZDateTime _nextInstanceOf(int hour, int minute) {
+  /// Next alarm at [hour]:[minute] local. If [skipToday], the first fire is never today (already played).
+  static tz.TZDateTime _nextInstanceOf(int hour, int minute,
+      {required bool skipToday}) {
     final now = tz.TZDateTime.now(tz.local);
+    if (skipToday) {
+      final tomorrow = now.add(const Duration(days: 1));
+      return tz.TZDateTime(
+          tz.local, tomorrow.year, tomorrow.month, tomorrow.day, hour, minute);
+    }
     var scheduled =
         tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
     if (scheduled.isBefore(now)) {

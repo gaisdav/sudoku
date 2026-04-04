@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudoku_dart/sudoku_dart.dart';
 
 import '../models/sudoku_cell.dart';
 import '../services/game_storage.dart';
+import '../services/streak_reminder_service.dart';
 import '../utils/vibration_helper.dart';
 import 'activity_streak_provider.dart';
 
@@ -434,7 +436,14 @@ class GameNotifier extends StateNotifier<GameState> {
   /// Streak / calendar: first qualifying interaction of the local day adds today's date.
   void _bumpActivityStreak() {
     GameStorage.saveActivityDate(DateTime.now()).then((added) {
-      if (added) _ref.read(activityDatesVersionProvider.notifier).state++;
+      if (!added) return;
+      _ref.read(activityDatesVersionProvider.notifier).state++;
+      if (!kIsWeb) {
+        unawaited(StreakReminderService.applyFromStorage(
+          defaultTitle: StreakReminderService.defaultReminderTitleFallback,
+          defaultBody: StreakReminderService.defaultReminderBodyFallback,
+        ));
+      }
     });
   }
 

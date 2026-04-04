@@ -559,7 +559,7 @@ abstract class AppLocalizations {
   /// No description provided for @streakReminderSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Get notified so you don’t miss a day and lose your streak.'**
+  /// **'Only if you haven’t played yet that day — helps keep your streak.'**
   String get streakReminderSubtitle;
 
   /// No description provided for @streakReminderTime.
@@ -583,7 +583,7 @@ abstract class AppLocalizations {
   /// No description provided for @streakReminderDefaultMessage.
   ///
   /// In en, this message translates to:
-  /// **'Play Sudoku today — keep your streak!'**
+  /// **'Sudoku - keep your streak!'**
   String get streakReminderDefaultMessage;
 
   /// No description provided for @notificationPermissionDenied.
