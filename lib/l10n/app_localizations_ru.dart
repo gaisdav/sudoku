@@ -39,6 +39,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get tabInstructions => 'Инструкция';
 
   @override
+  String get tabStatistics => 'Статистика';
+
+  @override
   String get instructionsTitle => 'Как играть в судоку';
 
   @override

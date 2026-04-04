@@ -160,6 +160,12 @@ abstract class AppLocalizations {
   /// **'Instructions'**
   String get tabInstructions;
 
+  /// No description provided for @tabStatistics.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics'**
+  String get tabStatistics;
+
   /// No description provided for @instructionsTitle.
   ///
   /// In en, this message translates to:

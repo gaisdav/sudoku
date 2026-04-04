@@ -39,6 +39,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tabInstructions => 'Instructions';
 
   @override
+  String get tabStatistics => 'Statistics';
+
+  @override
   String get instructionsTitle => 'How to play Sudoku';
 
   @override

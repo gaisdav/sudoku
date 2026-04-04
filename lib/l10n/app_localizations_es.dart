@@ -39,6 +39,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get tabInstructions => 'Instrucciones';
 
   @override
+  String get tabStatistics => 'Estadísticas';
+
+  @override
   String get instructionsTitle => 'Cómo jugar al Sudoku';
 
   @override

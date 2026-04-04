@@ -13,9 +13,9 @@ import '../services/streak_reminder_service.dart';
 import '../services/interstitial_ad_service.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../providers/activity_streak_provider.dart';
-import '../widgets/stats_dialog.dart' show formatDuration, showStatsDialog;
+import '../widgets/activity_calendar_panel.dart';
+import '../widgets/stats_dialog.dart' show formatDuration, StatsSummarySection;
 import 'game_screen.dart';
-import 'progress_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -24,7 +24,7 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-enum _HomeTab { main, instructions, settings }
+enum _HomeTab { main, instructions, statistics, settings }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   _HomeTab _selectedTab = _HomeTab.main;
@@ -193,9 +193,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onRefresh: () => setState(() {}),
               onOpenNewGame: _openNewGameAndRefreshOnReturn,
               onOpenTimedGame: _openTimedGame,
-              ref: ref,
             ),
             const _InstructionsTabContent(),
+            const _StatisticsTabContent(),
             const _SettingsTabContent(),
           ],
         ),
@@ -213,6 +213,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   if (context.mounted) setState(() => _selectedTab = _HomeTab.instructions);
                 },
               );
+            } else if (index == _HomeTab.statistics.index) {
+              InterstitialAdService.tryShowInterstitial(
+                context,
+                InterstitialTrigger.viewStatistics,
+                onDone: () {
+                  if (context.mounted) setState(() => _selectedTab = _HomeTab.statistics);
+                },
+              );
             } else {
               setState(() => _selectedTab = _HomeTab.values[index]);
             }
@@ -220,6 +228,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           items: [
             _NavBarItem(icon: Icons.home_rounded, selectedIcon: Icons.home_rounded, label: l10n.tabHome),
             _NavBarItem(icon: Icons.menu_book_rounded, selectedIcon: Icons.menu_book_rounded, label: l10n.tabInstructions),
+            _NavBarItem(icon: Icons.bar_chart_rounded, selectedIcon: Icons.bar_chart_rounded, label: l10n.tabStatistics),
             _NavBarItem(icon: Icons.settings_rounded, selectedIcon: Icons.settings_rounded, label: l10n.settings),
           ],
         ),
@@ -315,14 +324,12 @@ class _MainTabContent extends StatelessWidget {
     required this.onRefresh,
     required this.onOpenNewGame,
     required this.onOpenTimedGame,
-    this.ref,
   });
 
   final bool hasSavedGame;
   final VoidCallback onRefresh;
   final void Function(Level level) onOpenNewGame;
   final VoidCallback onOpenTimedGame;
-  final WidgetRef? ref;
 
   @override
   Widget build(BuildContext context) {
@@ -426,7 +433,20 @@ class _MainTabContent extends StatelessWidget {
             ],
           ),
         ),
-        const Divider(height: 32),
+      ],
+    );
+  }
+}
+
+class _StatisticsTabContent extends StatelessWidget {
+  const _StatisticsTabContent();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      children: [
         _SectionBlock(
           title: l10n.streak,
           child: const _StreakBlock(),
@@ -434,36 +454,17 @@ class _MainTabContent extends StatelessWidget {
         const Divider(height: 32),
         _SectionBlock(
           title: l10n.statistics,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                FilledButton.tonalIcon(
-                  onPressed: () {
-                    InterstitialAdService.tryShowInterstitial(
-                      context,
-                      InterstitialTrigger.viewStatistics,
-                      onDone: () => showStatsDialog(context, ref: ref),
-                    );
-                  },
-                  icon: const Icon(Icons.bar_chart),
-                  label: Text(l10n.viewStatistics),
-                ),
-                const SizedBox(height: 8),
-                FilledButton.tonalIcon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const ProgressScreen(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.calendar_month),
-                  label: Text(l10n.viewProgress),
-                ),
-              ],
-            ),
+          child: const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: StatsSummarySection(),
+          ),
+        ),
+        const Divider(height: 32),
+        _SectionBlock(
+          title: l10n.activityCalendar,
+          child: const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: ActivityCalendarPanel(),
           ),
         ),
       ],
@@ -642,6 +643,7 @@ class _SettingsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     final themeMode = ref.watch(themeModeProvider);
     final accentIndex = ref.watch(accentIndexProvider);
     final notifierTheme = ref.read(themeModeProvider.notifier);
@@ -651,8 +653,8 @@ class _SettingsSection extends ConsumerWidget {
       children: [
         Text(
           l10n.theme,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+          style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
         ),
         const SizedBox(height: 8),
@@ -663,8 +665,8 @@ class _SettingsSection extends ConsumerWidget {
               icon: Icon(
                 Icons.light_mode,
                 color: themeMode == ThemeMode.light
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurface,
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface,
               ),
               tooltip: l10n.lightTheme,
               onPressed: () => notifierTheme.setThemeMode(ThemeMode.light),
@@ -673,8 +675,8 @@ class _SettingsSection extends ConsumerWidget {
               icon: Icon(
                 Icons.dark_mode,
                 color: themeMode == ThemeMode.dark
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurface,
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface,
               ),
               tooltip: l10n.darkTheme,
               onPressed: () => notifierTheme.setThemeMode(ThemeMode.dark),
@@ -683,8 +685,8 @@ class _SettingsSection extends ConsumerWidget {
               icon: Icon(
                 Icons.brightness_auto,
                 color: themeMode == ThemeMode.system
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurface,
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface,
               ),
               tooltip: l10n.followSystem,
               onPressed: () => notifierTheme.setThemeMode(ThemeMode.system),
@@ -694,8 +696,8 @@ class _SettingsSection extends ConsumerWidget {
         const SizedBox(height: 20),
         Text(
           l10n.language,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+          style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
         ),
         const SizedBox(height: 8),
@@ -722,8 +724,8 @@ class _SettingsSection extends ConsumerWidget {
         const SizedBox(height: 20),
         Text(
           l10n.accentColor,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+          style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
         ),
         const SizedBox(height: 8),
@@ -753,7 +755,7 @@ class _SettingsSection extends ConsumerWidget {
                       shape: BoxShape.circle,
                       color: accentColorOptions[i],
                       border: Border.all(
-                        color: selected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                        color: selected ? theme.colorScheme.primary : Colors.transparent,
                         width: 3,
                       ),
                       boxShadow: [
@@ -773,8 +775,12 @@ class _SettingsSection extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         SwitchListTile(
+          contentPadding: EdgeInsets.zero,
           title: Text(l10n.vibration),
-          subtitle: Text(l10n.vibrationSubtitle),
+          subtitle: Text(
+            l10n.vibrationSubtitle,
+            style: theme.textTheme.bodySmall,
+          ),
           value: ref.watch(vibrationEnabledProvider),
           onChanged: (value) {
             ref.read(vibrationEnabledProvider.notifier).setEnabled(value);
@@ -884,13 +890,6 @@ class _StreakReminderSectionState extends State<_StreakReminderSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          l10n.streakReminder,
-          style: theme.textTheme.titleSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 8),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: Text(l10n.streakReminder),
