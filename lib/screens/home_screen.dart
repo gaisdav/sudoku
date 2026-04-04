@@ -46,50 +46,74 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _showNewGameDifficultyPicker() {
+  void _showDifficultyChooser({
+    required String dialogTitle,
+    required void Function(Level level) onPicked,
+  }) {
     final l10n = AppLocalizations.of(context)!;
     showDialog<void>(
       context: context,
-      builder: (ctx) {
-        void pick(Level level) {
-          Navigator.of(ctx).pop();
-          _openNewGameAndRefreshOnReturn(level);
-        }
-
-        return AlertDialog(
-          title: Text(l10n.chooseDifficulty),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ListTile(
-                  title: Text(l10n.levelEasy),
-                  onTap: () => pick(Level.easy),
-                ),
-                ListTile(
-                  title: Text(l10n.levelMedium),
-                  onTap: () => pick(Level.medium),
-                ),
-                ListTile(
-                  title: Text(l10n.levelHard),
-                  onTap: () => pick(Level.hard),
-                ),
-                ListTile(
-                  title: Text(l10n.levelExpert),
-                  onTap: () => pick(Level.expert),
-                ),
-              ],
-            ),
+      builder: (ctx) => AlertDialog(
+        title: Text(dialogTitle),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l10n.chooseDifficulty),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ActionChip(
+                    label: Text(l10n.levelEasy),
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      onPicked(Level.easy);
+                    },
+                  ),
+                  ActionChip(
+                    label: Text(l10n.levelMedium),
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      onPicked(Level.medium);
+                    },
+                  ),
+                  ActionChip(
+                    label: Text(l10n.levelHard),
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      onPicked(Level.hard);
+                    },
+                  ),
+                  ActionChip(
+                    label: Text(l10n.levelExpert),
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      onPicked(Level.expert);
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(l10n.cancel),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.cancel),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNewGameDifficultyPicker() {
+    final l10n = AppLocalizations.of(context)!;
+    _showDifficultyChooser(
+      dialogTitle: l10n.newGame,
+      onPicked: _openNewGameAndRefreshOnReturn,
     );
   }
 
@@ -116,61 +140,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     void showTimedLevelPicker() {
-      showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(l10n.timedStartNew),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(l10n.chooseDifficulty),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    ActionChip(
-                      label: Text(l10n.levelEasy),
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                        pushTimedNew(Level.easy);
-                      },
-                    ),
-                    ActionChip(
-                      label: Text(l10n.levelMedium),
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                        pushTimedNew(Level.medium);
-                      },
-                    ),
-                    ActionChip(
-                      label: Text(l10n.levelHard),
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                        pushTimedNew(Level.hard);
-                      },
-                    ),
-                    ActionChip(
-                      label: Text(l10n.levelExpert),
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                        pushTimedNew(Level.expert);
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(l10n.cancel),
-            ),
-          ],
-        ),
+      _showDifficultyChooser(
+        dialogTitle: l10n.timedModeTitle,
+        onPicked: pushTimedNew,
       );
     }
 
@@ -222,29 +194,55 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  void _goToStatisticsTab() {
+    InterstitialAdService.tryShowInterstitial(
+      context,
+      InterstitialTrigger.viewStatistics,
+      onDone: () {
+        if (context.mounted) setState(() => _selectedTab = _HomeTab.statistics);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasSavedGame = GameStorage.loadGame() != null;
 
     final l10n = AppLocalizations.of(context)!;
+    final appBarTitle = switch (_selectedTab) {
+      _HomeTab.main => l10n.appTitle,
+      _HomeTab.instructions => l10n.instructionsTitle,
+      _HomeTab.statistics => l10n.statistics,
+      _HomeTab.settings => l10n.settings,
+    };
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.appTitle),
+        title: Text(appBarTitle),
+        actions: [
+          if (_selectedTab == _HomeTab.main)
+            _HomeAppBarStreakActions(
+              current: ref.watch(currentStreakProvider),
+              best: ref.watch(bestStreakProvider),
+              onTap: _goToStatisticsTab,
+            ),
+        ],
       ),
       body: SafeArea(
-        child: IndexedStack(
-          index: _selectedTab.index,
-          children: [
-            _MainTabContent(
-              hasSavedGame: hasSavedGame,
-              onRefresh: () => setState(() {}),
-              onShowNewGameDifficultyPicker: _showNewGameDifficultyPicker,
-              onOpenTimedGame: _openTimedGame,
-            ),
-            const _InstructionsTabContent(),
-            const _StatisticsTabContent(),
-            const _SettingsTabContent(),
-          ],
+        child: SizedBox.expand(
+          child: IndexedStack(
+            index: _selectedTab.index,
+            children: [
+              _MainTabContent(
+                hasSavedGame: hasSavedGame,
+                onRefresh: () => setState(() {}),
+                onShowNewGameDifficultyPicker: _showNewGameDifficultyPicker,
+                onOpenTimedGame: _openTimedGame,
+              ),
+              const _InstructionsTabContent(),
+              const _StatisticsTabContent(),
+              const _SettingsTabContent(),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: ClipRRect(
@@ -261,13 +259,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 },
               );
             } else if (index == _HomeTab.statistics.index) {
-              InterstitialAdService.tryShowInterstitial(
-                context,
-                InterstitialTrigger.viewStatistics,
-                onDone: () {
-                  if (context.mounted) setState(() => _selectedTab = _HomeTab.statistics);
-                },
-              );
+              _goToStatisticsTab();
             } else {
               setState(() => _selectedTab = _HomeTab.values[index]);
             }
@@ -279,6 +271,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             _NavBarItem(icon: Icons.settings_rounded, selectedIcon: Icons.settings_rounded, label: l10n.settings),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Fire + current streak and trophy + best streak; matches statistics streak chip colors.
+class _HomeAppBarStreakActions extends StatelessWidget {
+  const _HomeAppBarStreakActions({
+    required this.current,
+    required this.best,
+    required this.onTap,
+  });
+
+  final int current;
+  final int best;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final valueStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: colorScheme.onSurface,
+      fontWeight: FontWeight.w600,
+    );
+
+    Widget chip({required IconData icon, required String value}) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 24, color: colorScheme.primary),
+              const SizedBox(width: 4),
+              Text(value, style: valueStyle),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          chip(icon: Icons.local_fire_department, value: '$current'),
+          chip(icon: Icons.emoji_events, value: '$best'),
+        ],
       ),
     );
   }
@@ -321,9 +365,10 @@ class _CompactNavBar extends StatelessWidget {
       color: colorScheme.surfaceContainerHighest,
       child: SafeArea(
         top: false,
-        child: SizedBox(
-          height: 50,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: _verticalPadding),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: List.generate(items.length, (index) {
               final item = items[index];
@@ -338,21 +383,24 @@ class _CompactNavBar extends StatelessWidget {
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () => onTap(index),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: _verticalPadding),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            selected ? item.selectedIcon : item.icon,
-                            size: _iconSize,
-                            color: color,
-                          ),
-                          const SizedBox(height: _iconToLabelGap),
-                          Text(item.label, style: labelStyleWithColor),
-                        ],
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          selected ? item.selectedIcon : item.icon,
+                          size: _iconSize,
+                          color: color,
+                        ),
+                        const SizedBox(height: _iconToLabelGap),
+                        Text(
+                          item.label,
+                          style: labelStyleWithColor,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -380,92 +428,129 @@ class _MainTabContent extends StatelessWidget {
 
   static const double _actionRadius = 16;
   static const double _actionMinHeight = 52;
+  /// Cap width on tablets / very wide phones so actions stay comfortably narrow.
+  static const double _maxActionWidth = 420;
+  static const double _padH = 16;
+  static const double _padTop = 16;
+  /// Extra air above the bottom tab bar (buttons sit low on home).
+  static const double _padBottom = 28;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _HomeContinueButton(
-              hasSavedGame: hasSavedGame,
-              borderRadius: _actionRadius,
-              minHeight: _actionMinHeight,
-              onContinue: () {
-                InterstitialAdService.tryShowInterstitial(
-                  context,
-                  InterstitialTrigger.continueGame,
-                  onDone: () {
-                    if (!context.mounted) return;
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const GameScreen(continueLast: true),
-                      ),
-                    ).then((_) {
-                      if (context.mounted) onRefresh();
-                    });
-                  },
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            _HomeSecondaryActionButton(
-              label: l10n.newGame,
-              borderRadius: _actionRadius,
-              minHeight: _actionMinHeight,
-              onPressed: onShowNewGameDifficultyPicker,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: _HomeSecondaryActionButton(
-                    label: l10n.timedModeHomeButton,
-                    icon: Icons.timer_outlined,
-                    borderRadius: _actionRadius,
-                    minHeight: _actionMinHeight,
-                    onPressed: onOpenTimedGame,
+    const pad = EdgeInsets.fromLTRB(_padH, _padTop, _padH, _padBottom);
+    final actionChildren = <Widget>[
+      if (hasSavedGame) ...[
+        _HomeContinueButton(
+          borderRadius: _actionRadius,
+          minHeight: _actionMinHeight,
+          onContinue: () {
+            InterstitialAdService.tryShowInterstitial(
+              context,
+              InterstitialTrigger.continueGame,
+              onDone: () {
+                if (!context.mounted) return;
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const GameScreen(continueLast: true),
                   ),
-                ),
-                const SizedBox(width: 10),
-                _HomeSquareInfoButton(
-                  borderRadius: _actionRadius,
-                  size: _actionMinHeight,
-                  tooltip: l10n.timedModeTitle,
-                  colorScheme: colorScheme,
-                  onPressed: () {
-                    showDialog<void>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: Text(l10n.timedModeTitle),
-                        content: SingleChildScrollView(
-                          child: Text(
-                            l10n.timedModeInfoBody,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  height: 1.4,
-                                ),
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(ctx).pop(),
-                            child: Text(l10n.ok),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ],
+                ).then((_) {
+                  if (context.mounted) onRefresh();
+                });
+              },
+            );
+          },
         ),
+        const SizedBox(height: 12),
       ],
+      _HomeSecondaryActionButton(
+        label: l10n.newGame,
+        borderRadius: _actionRadius,
+        minHeight: _actionMinHeight,
+        onPressed: onShowNewGameDifficultyPicker,
+      ),
+      const SizedBox(height: 12),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: _HomeSecondaryActionButton(
+              label: l10n.timedModeHomeButton,
+              icon: Icons.timer_outlined,
+              borderRadius: _actionRadius,
+              minHeight: _actionMinHeight,
+              onPressed: onOpenTimedGame,
+            ),
+          ),
+          const SizedBox(width: 10),
+          _HomeSquareInfoButton(
+            borderRadius: _actionRadius,
+            size: _actionMinHeight,
+            tooltip: l10n.timedModeTitle,
+            colorScheme: colorScheme,
+            onPressed: () {
+              showDialog<void>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text(l10n.timedModeTitle),
+                  content: SingleChildScrollView(
+                    child: Text(
+                      l10n.timedModeInfoBody,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            height: 1.4,
+                          ),
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: Text(l10n.ok),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    ];
+
+    final actionsColumn = Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: _maxActionWidth),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: actionChildren,
+        ),
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final minH = constraints.maxHeight;
+        if (!minH.isFinite || minH <= 0) {
+          return SingleChildScrollView(
+            padding: pad,
+            child: actionsColumn,
+          );
+        }
+
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: minH),
+            child: Padding(
+              padding: pad,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [actionsColumn],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -629,14 +714,6 @@ class _InstructionsTabContent extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             children: [
-              Text(
-                l10n.instructionsTitle,
-                style: textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 12),
               Text(
                 l10n.instructionsBody,
                 style: textTheme.bodyMedium?.copyWith(
@@ -976,13 +1053,11 @@ class _StreakReminderSectionState extends State<_StreakReminderSection> {
 
 class _HomeContinueButton extends StatelessWidget {
   const _HomeContinueButton({
-    required this.hasSavedGame,
     required this.onContinue,
     required this.borderRadius,
     required this.minHeight,
   });
 
-  final bool hasSavedGame;
   final VoidCallback onContinue;
   final double borderRadius;
   final double minHeight;
@@ -993,7 +1068,7 @@ class _HomeContinueButton extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final levelLabels = [l10n.levelEasy, l10n.levelMedium, l10n.levelHard, l10n.levelExpert];
-    final saved = hasSavedGame ? GameStorage.loadGame() : null;
+    final saved = GameStorage.loadGame();
     final difficultyIndex = (saved?[GameStorage.keyDifficulty] as num?)?.toInt() ?? 0;
     final levelLabel = levelLabels[difficultyIndex.clamp(0, levelLabels.length - 1)];
     final elapsedSeconds = (saved?[GameStorage.keyElapsedSeconds] as num?)?.toInt() ?? 0;
@@ -1003,9 +1078,9 @@ class _HomeContinueButton extends StatelessWidget {
     );
 
     final button = FilledButton(
-      onPressed: hasSavedGame ? onContinue : null,
+      onPressed: onContinue,
       style: FilledButton.styleFrom(
-        minimumSize: Size(double.infinity, minHeight + (hasSavedGame ? 18 : 0)),
+        minimumSize: Size(double.infinity, minHeight + 18),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         elevation: 0,
         shadowColor: Colors.transparent,
@@ -1021,30 +1096,38 @@ class _HomeContinueButton extends StatelessWidget {
             style: theme.textTheme.titleMedium?.copyWith(
                   color: colorScheme.onPrimary,
                   fontWeight: FontWeight.w600,
+                  fontSize: (theme.textTheme.titleMedium?.fontSize ?? 16) + 2,
                 ),
           ),
-          if (hasSavedGame) ...[
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.schedule, size: 16, color: sublineColor),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    '${formatDuration(elapsedSeconds)} - $levelLabel',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                          color: sublineColor,
-                          fontWeight: FontWeight.w500,
-                        ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+          const SizedBox(height: 6),
+          LayoutBuilder(
+            builder: (context, c) {
+              const iconW = 16.0;
+              const gap = 6.0;
+              final textMaxW = (c.maxWidth - iconW - gap).clamp(0.0, double.infinity);
+              return Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.schedule, size: 16, color: sublineColor),
+                    const SizedBox(width: gap),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: textMaxW),
+                      child: Text(
+                        '${formatDuration(elapsedSeconds)} - $levelLabel',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                              color: sublineColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ],
+              );
+            },
+          ),
         ],
       ),
     );
@@ -1052,15 +1135,13 @@ class _HomeContinueButton extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: hasSavedGame
-            ? [
-                BoxShadow(
-                  color: colorScheme.primary.withValues(alpha: 0.32),
-                  blurRadius: 14,
-                  offset: const Offset(0, 5),
-                ),
-              ]
-            : null,
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary.withValues(alpha: 0.32),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: button,
     );
@@ -1084,7 +1165,8 @@ class _HomeSecondaryActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return FilledButton(
       onPressed: onPressed,
       style: FilledButton.styleFrom(
@@ -1109,9 +1191,10 @@ class _HomeSecondaryActionButton extends StatelessWidget {
           ],
           Text(
             label,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            style: theme.textTheme.titleSmall?.copyWith(
                   color: colorScheme.primary,
                   fontWeight: FontWeight.w600,
+                  fontSize: (theme.textTheme.titleSmall?.fontSize ?? 14) + 2,
                 ),
           ),
         ],

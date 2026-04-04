@@ -11,8 +11,8 @@ import 'sudoku_cell_widget.dart';
 const _kMinGridSide = 280.0;
 const _kMaxGridSide = 720.0;
 
-/// Fraction of available space the grid can use (so it scales on tablets).
-const _kGridSpaceFraction = 0.88;
+/// Use nearly all of the smaller axis so the board is as large as possible.
+const _kGridSpaceFraction = 1.0;
 
 /// Gap between 3×3 blocks (replaces drawn lines). Smaller = larger cells.
 const _blockGap = 4.0;
@@ -30,9 +30,7 @@ class SudokuGrid extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        const padding = 6.0;
-        final availableWidth =
-            (constraints.maxWidth - padding).clamp(0.0, double.infinity);
+        final availableWidth = constraints.maxWidth.clamp(0.0, double.infinity);
         final availableHeight =
             constraints.maxHeight.clamp(0.0, double.infinity);
         final available = min(availableWidth, availableHeight);

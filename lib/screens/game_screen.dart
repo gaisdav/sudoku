@@ -828,7 +828,7 @@ class _GameScreenBody extends ConsumerWidget {
                 ],
               ),
             ),
-            // Сетка и блок «кнопки + numpad» делят пространство: на больших экранах нижний блок центрируется по высоте
+            // Сетка и блок «кнопки + numpad» делят пространство; numpad масштабируется вниз, если высоты не хватает.
             Expanded(
               child: Column(
                 children: [
@@ -846,162 +846,192 @@ class _GameScreenBody extends ConsumerWidget {
                             .clamp(0.0, 1.0);
                         final outerH = 6.0 + scale * 6.0; // 6 .. 12
                         final gap = 6.0 + scale * 6.0; // 6 .. 12
-                        return Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: outerH, vertical: 4),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Flexible(
-                                      child: Tooltip(
-                                        message: l10n.undo,
-                                        child: _ActionButton(
-                                          icon: state.undoStack.isNotEmpty &&
-                                                  state.undoRemaining == 0
-                                              ? Icons.campaign
-                                              : Icons.undo,
-                                          label: l10n.undo,
-                                          badge: state.undoRemaining > 0
-                                              ? '${state.undoRemaining}'
-                                              : null,
-                                          actionScale: scale,
-                                          onPressed: _undoEnabled(state)
-                                              ? () => _onUndoTap(
-                                                  context, ref, state)
-                                              : null,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: gap),
-                                    Flexible(
-                                      child: Tooltip(
-                                        message: l10n.notes,
-                                        child: _ActionButton(
-                                          icon: Icons.edit_note,
-                                          label: l10n.notes,
-                                          isActive: state.isNotesMode,
-                                          actionScale: scale,
-                                          onPressed: state.isWon ||
-                                                  state.isTimedOut
-                                              ? null
-                                              : () {
-                                                  hapticSelection();
-                                                  notifier.onAppPaused();
-                                                  InterstitialAdService
-                                                      .tryShowInterstitial(
-                                                    context,
-                                                    InterstitialTrigger.notes,
-                                                    onDone: () {
-                                                      notifier.onAppResumed();
-                                                      notifier
-                                                          .toggleNotesMode();
-                                                    },
-                                                  );
-                                                },
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: gap),
-                                    Flexible(
-                                      child: Tooltip(
-                                        message: l10n.hint,
-                                        child: _ActionButton(
-                                          icon: state.freeHintsLeft == 0
-                                              ? Icons.campaign
-                                              : Icons.lightbulb_outline,
-                                          label: l10n.hint,
-                                          badge: state.freeHintsLeft > 0
-                                              ? '${state.freeHintsLeft}'
-                                              : null,
-                                          actionScale: scale,
-                                          onPressed: state.isWon ||
-                                                  state.isTimedOut
-                                              ? null
-                                              : () async {
-                                                  hapticLightImpact();
-                                                  final applied =
-                                                      notifier.applyHint();
-                                                  if (!applied) {
-                                                    if (!context.mounted) {
-                                                      return;
-                                                    }
-                                                    notifier.onAppPaused();
-                                                    if (!Env.adsEnabled) {
-                                                      notifier.applyHintFromAd();
-                                                      notifier.onAppResumed();
-                                                      ScaffoldMessenger.of(
-                                                              context)
-                                                          .showSnackBar(
-                                                        SnackBar(
-                                                          content: Text(
-                                                              AppLocalizations.of(
-                                                                      context)!
-                                                                  .adNotAvailableHintApplied),
-                                                          duration:
-                                                              const Duration(
-                                                                  seconds: 2),
-                                                        ),
-                                                      );
-                                                      return;
-                                                    }
-                                                    showDialog<void>(
-                                                      context: context,
-                                                      barrierDismissible: false,
-                                                      builder: (_) =>
-                                                          const _LoadingAdDialog(),
-                                                    );
-                                                    showRewardedAd(
-                                                      context,
-                                                      onAdReadyToShow: () {
-                                                        if (context.mounted) {
-                                                          Navigator.of(context)
-                                                              .pop();
-                                                        }
-                                                      },
-                                                      onRewarded: () => notifier
-                                                          .applyHintFromAd(),
-                                                      onDismissed: () =>
+                        return ClipRect(
+                          child: SizedBox.expand(
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.bottomCenter,
+                                child: SizedBox(
+                                  width: w,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: outerH, vertical: 4),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Flexible(
+                                              child: Tooltip(
+                                                message: l10n.undo,
+                                                child: _ActionButton(
+                                                  icon: state.undoStack
+                                                              .isNotEmpty &&
+                                                          state.undoRemaining ==
+                                                              0
+                                                      ? Icons.campaign
+                                                      : Icons.undo,
+                                                  label: l10n.undo,
+                                                  badge: state.undoRemaining > 0
+                                                      ? '${state.undoRemaining}'
+                                                      : null,
+                                                  actionScale: scale,
+                                                  onPressed: _undoEnabled(state)
+                                                      ? () => _onUndoTap(
+                                                          context, ref, state)
+                                                      : null,
+                                                ),
+                                              ),
+                                            ),
+                                            SizedBox(width: gap),
+                                            Flexible(
+                                              child: Tooltip(
+                                                message: l10n.notes,
+                                                child: _ActionButton(
+                                                  icon: Icons.edit_note,
+                                                  label: l10n.notes,
+                                                  isActive: state.isNotesMode,
+                                                  actionScale: scale,
+                                                  onPressed: state.isWon ||
+                                                          state.isTimedOut
+                                                      ? null
+                                                      : () {
+                                                          hapticSelection();
                                                           notifier
-                                                              .onAppResumed(),
-                                                      onNotAvailable: () {
-                                                        if (context.mounted) {
-                                                          Navigator.of(context)
-                                                              .pop();
-                                                          notifier
-                                                              .applyHintFromAd();
-                                                          notifier
-                                                              .onAppResumed();
-                                                          ScaffoldMessenger.of(
-                                                                  context)
-                                                              .showSnackBar(
-                                                            SnackBar(
-                                                              content: Text(
-                                                                  AppLocalizations.of(
-                                                                          context)!
-                                                                      .adNotAvailableHintApplied),
-                                                              duration:
-                                                                  const Duration(
-                                                                      seconds:
-                                                                          2),
-                                                            ),
+                                                              .onAppPaused();
+                                                          InterstitialAdService
+                                                              .tryShowInterstitial(
+                                                            context,
+                                                            InterstitialTrigger
+                                                                .notes,
+                                                            onDone: () {
+                                                              notifier
+                                                                  .onAppResumed();
+                                                              notifier
+                                                                  .toggleNotesMode();
+                                                            },
                                                           );
-                                                        }
-                                                      },
-                                                    );
-                                                  }
-                                                },
+                                                        },
+                                                ),
+                                              ),
+                                            ),
+                                            SizedBox(width: gap),
+                                            Flexible(
+                                              child: Tooltip(
+                                                message: l10n.hint,
+                                                child: _ActionButton(
+                                                  icon: state.freeHintsLeft == 0
+                                                      ? Icons.campaign
+                                                      : Icons.lightbulb_outline,
+                                                  label: l10n.hint,
+                                                  badge: state.freeHintsLeft > 0
+                                                      ? '${state.freeHintsLeft}'
+                                                      : null,
+                                                  actionScale: scale,
+                                                  onPressed:
+                                                      state.isWon ||
+                                                              state.isTimedOut
+                                                          ? null
+                                                          : () async {
+                                                              hapticLightImpact();
+                                                              final applied =
+                                                                  notifier
+                                                                      .applyHint();
+                                                              if (!applied) {
+                                                                if (!context
+                                                                    .mounted) {
+                                                                  return;
+                                                                }
+                                                                notifier
+                                                                    .onAppPaused();
+                                                                if (!Env
+                                                                    .adsEnabled) {
+                                                                  notifier
+                                                                      .applyHintFromAd();
+                                                                  notifier
+                                                                      .onAppResumed();
+                                                                  ScaffoldMessenger.of(
+                                                                          context)
+                                                                      .showSnackBar(
+                                                                    SnackBar(
+                                                                      content: Text(
+                                                                          AppLocalizations.of(context)!
+                                                                              .adNotAvailableHintApplied),
+                                                                      duration: const Duration(
+                                                                          seconds:
+                                                                              2),
+                                                                    ),
+                                                                  );
+                                                                  return;
+                                                                }
+                                                                showDialog<
+                                                                    void>(
+                                                                  context:
+                                                                      context,
+                                                                  barrierDismissible:
+                                                                      false,
+                                                                  builder: (_) =>
+                                                                      const _LoadingAdDialog(),
+                                                                );
+                                                                showRewardedAd(
+                                                                  context,
+                                                                  onAdReadyToShow:
+                                                                      () {
+                                                                    if (context
+                                                                        .mounted) {
+                                                                      Navigator.of(
+                                                                              context)
+                                                                          .pop();
+                                                                    }
+                                                                  },
+                                                                  onRewarded: () =>
+                                                                      notifier
+                                                                          .applyHintFromAd(),
+                                                                  onDismissed: () =>
+                                                                      notifier
+                                                                          .onAppResumed(),
+                                                                  onNotAvailable:
+                                                                      () {
+                                                                    if (context
+                                                                        .mounted) {
+                                                                      Navigator.of(
+                                                                              context)
+                                                                          .pop();
+                                                                      notifier
+                                                                          .applyHintFromAd();
+                                                                      notifier
+                                                                          .onAppResumed();
+                                                                      ScaffoldMessenger.of(
+                                                                              context)
+                                                                          .showSnackBar(
+                                                                        SnackBar(
+                                                                          content:
+                                                                              Text(AppLocalizations.of(context)!.adNotAvailableHintApplied),
+                                                                          duration:
+                                                                              const Duration(seconds: 2),
+                                                                        ),
+                                                                      );
+                                                                    }
+                                                                  },
+                                                                );
+                                                              }
+                                                            },
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                      const NumberPad(),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              const NumberPad(),
-                            ],
+                            ),
                           ),
                         );
                       },
@@ -1027,9 +1057,7 @@ class _GameScreenBody extends ConsumerWidget {
   }
 
   static bool _undoEnabled(GameState state) {
-    return !state.isWon &&
-        !state.isTimedOut &&
-        state.undoStack.isNotEmpty;
+    return !state.isWon && !state.isTimedOut && state.undoStack.isNotEmpty;
   }
 
   static void _onUndoTap(BuildContext context, WidgetRef ref, GameState state) {

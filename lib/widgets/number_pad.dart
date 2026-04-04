@@ -46,7 +46,8 @@ class NumberPad extends ConsumerWidget {
         const gap = 8.0;
         const countPerRow = 5;
         final availableWidth = (constraints.maxWidth - horizontalPadding * 2).clamp(0.0, double.infinity);
-        final widthPerFive = (availableWidth - (countPerRow - 1) * gap) / countPerRow;
+        // Each cell is wrapped in Padding(horizontal: padding) with padding = gap/2 → 5 cells add 5*gap.
+        final widthPerFive = (availableWidth - countPerRow * gap) / countPerRow;
         final useCompactStrip = widthPerFive < _kMinButtonSize - 0.01;
 
         final colors = context.appColors;
