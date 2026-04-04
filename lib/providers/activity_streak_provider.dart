@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../services/game_storage.dart';
+import '../services/game_storage.dart' show CalendarDayOutcome, GameStorage;
 
 /// Version bump to invalidate activity-dependent providers when a new activity date is saved.
 final activityDatesVersionProvider = StateProvider<int>((ref) => 0);
@@ -9,6 +9,12 @@ final activityDatesVersionProvider = StateProvider<int>((ref) => 0);
 final activityDatesProvider = Provider<List<String>>((ref) {
   ref.watch(activityDatesVersionProvider);
   return GameStorage.loadActivityDates();
+});
+
+/// Per-day calendar outcome (win / loss / played only). Refreshes with [activityDatesVersionProvider].
+final calendarDayOutcomesProvider = Provider<Map<String, CalendarDayOutcome>>((ref) {
+  ref.watch(activityDatesVersionProvider);
+  return GameStorage.loadCalendarDayOutcomes();
 });
 
 /// Current streak: consecutive days up to today or yesterday. 0 if last activity was before yesterday.

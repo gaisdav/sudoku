@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/activity_calendar_panel.dart';
 
-/// Full-screen "Progress" / Activity calendar: which days had at least one solved puzzle.
+/// Full-screen "Progress" / activity calendar: win, loss, or played (incomplete) per day.
 class ProgressScreen extends ConsumerWidget {
   const ProgressScreen({super.key});
 

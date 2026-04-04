@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../config/app_colors.dart';
+import '../services/game_storage.dart' show CalendarDayOutcome;
+
 /// Displays one month in a 7×7 grid (weekday headers + up to 6 rows of days).
-/// Highlights [activityDates] (yyyy-MM-dd) and today.
+/// Highlights days by outcome ([dayOutcomes]) and today.
 class ActivityCalendarWidget extends StatelessWidget {
   const ActivityCalendarWidget({
     super.key,
     required this.displayMonth,
-    required this.activityDates,
+    required this.dayOutcomes,
     required this.onPreviousMonth,
     required this.onNextMonth,
     this.locale,
@@ -15,8 +18,8 @@ class ActivityCalendarWidget extends StatelessWidget {
 
   /// First day of the month to show.
   final DateTime displayMonth;
-  /// Set of date strings "yyyy-MM-dd" when user had activity.
-  final Set<String> activityDates;
+  /// Map "yyyy-MM-dd" → outcome for that local calendar day.
+  final Map<String, CalendarDayOutcome> dayOutcomes;
   final VoidCallback onPreviousMonth;
   final VoidCallback onNextMonth;
   final String? locale;
@@ -29,6 +32,7 @@ class ActivityCalendarWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final appColors = context.appColors;
     final locale = this.locale ?? Localizations.localeOf(context).toString();
     final monthYear = DateFormat.yMMM(locale).format(displayMonth);
     final weekdayFormat = DateFormat.E(locale);
@@ -97,14 +101,15 @@ class ActivityCalendarWidget extends StatelessWidget {
                   }
                   final date = DateTime(displayMonth.year, displayMonth.month, dayNumber);
                   final key = _dateKey(date);
-                  final isActive = activityDates.contains(key);
+                  final outcome = dayOutcomes[key];
                   final now = DateTime.now();
                   final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
                   return _DayCell(
                     day: dayNumber,
-                    isActive: isActive,
+                    outcome: outcome,
                     isToday: isToday,
                     colorScheme: colorScheme,
+                    appColors: appColors,
                     textTheme: theme.textTheme,
                   );
                 }),
@@ -120,26 +125,45 @@ class ActivityCalendarWidget extends StatelessWidget {
 class _DayCell extends StatelessWidget {
   const _DayCell({
     required this.day,
-    required this.isActive,
+    required this.outcome,
     required this.isToday,
     required this.colorScheme,
+    required this.appColors,
     required this.textTheme,
   });
 
   final int day;
-  final bool isActive;
+  final CalendarDayOutcome? outcome;
   final bool isToday;
   final ColorScheme colorScheme;
+  final AppColors appColors;
   final TextTheme? textTheme;
 
   @override
   Widget build(BuildContext context) {
+    late final Color? fill;
+    late final Color labelColor;
+    switch (outcome) {
+      case CalendarDayOutcome.win:
+        fill = appColors.successLight;
+        labelColor = appColors.textPrimary;
+      case CalendarDayOutcome.loss:
+        fill = appColors.errorLight;
+        labelColor = appColors.errorDark;
+      case CalendarDayOutcome.played:
+        fill = appColors.cellRegionComplete;
+        labelColor = appColors.textSecondary;
+      case null:
+        fill = null;
+        labelColor = colorScheme.onSurface;
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
       child: Container(
         height: 36,
         decoration: BoxDecoration(
-          color: isActive ? colorScheme.primaryContainer : null,
+          color: fill,
           shape: BoxShape.circle,
           border: isToday
               ? Border.all(color: colorScheme.primary, width: 2)
@@ -149,7 +173,7 @@ class _DayCell extends StatelessWidget {
           child: Text(
             '$day',
             style: (textTheme?.bodyMedium ?? const TextStyle()).copyWith(
-              color: isActive ? colorScheme.onPrimaryContainer : colorScheme.onSurface,
+              color: labelColor,
               fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
             ),
           ),

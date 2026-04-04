@@ -362,6 +362,7 @@ class GameNotifier extends StateNotifier<GameState> {
           _stopTimer();
           GameStorage.saveTimedGame(null);
           state = state.copyWith(timedRemainingSeconds: 0, isTimedOut: true);
+          _recordCalendarAndRefresh(CalendarDayOutcome.loss);
           return;
         }
         state = state.copyWith(
@@ -433,10 +434,10 @@ class GameNotifier extends StateNotifier<GameState> {
     }
   }
 
-  /// Streak / calendar: first qualifying interaction of the local day adds today's date.
-  void _bumpActivityStreak() {
-    GameStorage.saveActivityDate(DateTime.now()).then((added) {
-      if (!added) return;
+  /// Streak / calendar: merge rules in [GameStorage.recordCalendarDay].
+  void _recordCalendarAndRefresh(CalendarDayOutcome outcome) {
+    GameStorage.recordCalendarDay(DateTime.now(), outcome).then((changed) {
+      if (!changed) return;
       _ref.read(activityDatesVersionProvider.notifier).state++;
       if (!kIsWeb) {
         unawaited(StreakReminderService.applyFromStorage(
@@ -737,7 +738,7 @@ class GameNotifier extends StateNotifier<GameState> {
       newNotes[idx] = notes;
       state = state.copyWith(cellNotes: newNotes);
       _persistGame();
-      _bumpActivityStreak();
+      _recordCalendarAndRefresh(CalendarDayOutcome.played);
       return;
     }
 
@@ -763,7 +764,7 @@ class GameNotifier extends StateNotifier<GameState> {
     newNotes[idx] = notes;
     state = state.copyWith(cellNotes: newNotes);
     _persistGame();
-    _bumpActivityStreak();
+    _recordCalendarAndRefresh(CalendarDayOutcome.played);
   }
 
   /// Performs one undo (when user has free undos). Returns false if stack empty or no remaining.
@@ -825,7 +826,7 @@ class GameNotifier extends StateNotifier<GameState> {
     newNotes[idx] = <int>{};
     state = state.copyWith(cellNotes: newNotes);
     _persistGame();
-    _bumpActivityStreak();
+    _recordCalendarAndRefresh(CalendarDayOutcome.played);
   }
 
   /// Sets digit in selected cell (or at index). Only editable non-original cells. Clears notes in that cell.
@@ -864,7 +865,10 @@ class GameNotifier extends StateNotifier<GameState> {
       _triggerRegionCompleteHaptic();
     }
     _persistGame();
-    _bumpActivityStreak();
+    _recordCalendarAndRefresh(CalendarDayOutcome.played);
+    if (state.errorsMade > state.maxErrors && !state.noErrorsModeThisSession) {
+      _recordCalendarAndRefresh(CalendarDayOutcome.loss);
+    }
     _checkWin();
   }
 
@@ -881,7 +885,7 @@ class GameNotifier extends StateNotifier<GameState> {
     state = state.copyWith(cells: newCells);
     _revalidateWrong();
     _persistGame();
-    _bumpActivityStreak();
+    _recordCalendarAndRefresh(CalendarDayOutcome.played);
   }
 
   /// Clears all wrong cells (non-original) to give a "second chance" after watching ad.
@@ -898,7 +902,7 @@ class GameNotifier extends StateNotifier<GameState> {
     state = state.copyWith(cells: newCells);
     _revalidateWrong();
     _persistGame();
-    _bumpActivityStreak();
+    _recordCalendarAndRefresh(CalendarDayOutcome.played);
   }
 
   void markGameOverDialogShown() {
@@ -1028,7 +1032,7 @@ class GameNotifier extends StateNotifier<GameState> {
       _triggerRegionCompleteHaptic();
     }
     _persistGame();
-    _bumpActivityStreak();
+    _recordCalendarAndRefresh(CalendarDayOutcome.played);
     _checkWin();
     return true;
   }
@@ -1042,12 +1046,14 @@ class GameNotifier extends StateNotifier<GameState> {
     if (state.isTimedMode) {
       await GameStorage.saveTimedGame(null);
       state = state.copyWith(isWon: true, previousBestTimeForLevel: null);
+      _recordCalendarAndRefresh(CalendarDayOutcome.win);
       return;
     }
     final prevBest = GameStorage.loadBestTimeByLevel()[state.difficulty.index];
     await _persistStats();
     await GameStorage.saveGame(null);
     state = state.copyWith(isWon: true, previousBestTimeForLevel: prevBest);
+    _recordCalendarAndRefresh(CalendarDayOutcome.win);
   }
 
   Future<void> _persistStats() async {

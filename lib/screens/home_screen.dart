@@ -46,6 +46,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  void _showNewGameDifficultyPicker() {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        void pick(Level level) {
+          Navigator.of(ctx).pop();
+          _openNewGameAndRefreshOnReturn(level);
+        }
+
+        return AlertDialog(
+          title: Text(l10n.chooseDifficulty),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ListTile(
+                  title: Text(l10n.levelEasy),
+                  onTap: () => pick(Level.easy),
+                ),
+                ListTile(
+                  title: Text(l10n.levelMedium),
+                  onTap: () => pick(Level.medium),
+                ),
+                ListTile(
+                  title: Text(l10n.levelHard),
+                  onTap: () => pick(Level.hard),
+                ),
+                ListTile(
+                  title: Text(l10n.levelExpert),
+                  onTap: () => pick(Level.expert),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.cancel),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _openTimedGame() {
     final l10n = AppLocalizations.of(context)!;
     void pushTimedNew(Level level) {
@@ -191,7 +238,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             _MainTabContent(
               hasSavedGame: hasSavedGame,
               onRefresh: () => setState(() {}),
-              onOpenNewGame: _openNewGameAndRefreshOnReturn,
+              onShowNewGameDifficultyPicker: _showNewGameDifficultyPicker,
               onOpenTimedGame: _openTimedGame,
             ),
             const _InstructionsTabContent(),
@@ -322,116 +369,101 @@ class _MainTabContent extends StatelessWidget {
   const _MainTabContent({
     required this.hasSavedGame,
     required this.onRefresh,
-    required this.onOpenNewGame,
+    required this.onShowNewGameDifficultyPicker,
     required this.onOpenTimedGame,
   });
 
   final bool hasSavedGame;
   final VoidCallback onRefresh;
-  final void Function(Level level) onOpenNewGame;
+  final VoidCallback onShowNewGameDifficultyPicker;
   final VoidCallback onOpenTimedGame;
+
+  static const double _actionRadius = 16;
+  static const double _actionMinHeight = 52;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       children: [
-        _SectionBlock(
-          title: l10n.game,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ContinueRow(
-                hasSavedGame: hasSavedGame,
-                onContinue: () {
-                  InterstitialAdService.tryShowInterstitial(
-                    context,
-                    InterstitialTrigger.continueGame,
-                    onDone: () {
-                      if (!context.mounted) return;
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const GameScreen(continueLast: true),
-                        ),
-                      ).then((_) {
-                        if (context.mounted) onRefresh();
-                      });
-                    },
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.newGame,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _DifficultyChip(
-                    label: l10n.levelEasy,
-                    onTap: () => onOpenNewGame(Level.easy),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _HomeContinueButton(
+              hasSavedGame: hasSavedGame,
+              borderRadius: _actionRadius,
+              minHeight: _actionMinHeight,
+              onContinue: () {
+                InterstitialAdService.tryShowInterstitial(
+                  context,
+                  InterstitialTrigger.continueGame,
+                  onDone: () {
+                    if (!context.mounted) return;
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const GameScreen(continueLast: true),
+                      ),
+                    ).then((_) {
+                      if (context.mounted) onRefresh();
+                    });
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _HomeSecondaryActionButton(
+              label: l10n.newGame,
+              borderRadius: _actionRadius,
+              minHeight: _actionMinHeight,
+              onPressed: onShowNewGameDifficultyPicker,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: _HomeSecondaryActionButton(
+                    label: l10n.timedModeHomeButton,
+                    icon: Icons.timer_outlined,
+                    borderRadius: _actionRadius,
+                    minHeight: _actionMinHeight,
+                    onPressed: onOpenTimedGame,
                   ),
-                  _DifficultyChip(
-                    label: l10n.levelMedium,
-                    onTap: () => onOpenNewGame(Level.medium),
-                  ),
-                  _DifficultyChip(
-                    label: l10n.levelHard,
-                    onTap: () => onOpenNewGame(Level.hard),
-                  ),
-                  _DifficultyChip(
-                    label: l10n.levelExpert,
-                    onTap: () => onOpenNewGame(Level.expert),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: FilledButton.tonalIcon(
-                      onPressed: onOpenTimedGame,
-                      icon: const Icon(Icons.timer_outlined),
-                      label: Text(l10n.timedModeHomeButton),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      showDialog<void>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: Text(l10n.timedModeTitle),
-                          content: SingleChildScrollView(
-                            child: Text(
-                              l10n.timedModeInfoBody,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    height: 1.4,
-                                  ),
-                            ),
+                ),
+                const SizedBox(width: 10),
+                _HomeSquareInfoButton(
+                  borderRadius: _actionRadius,
+                  size: _actionMinHeight,
+                  tooltip: l10n.timedModeTitle,
+                  colorScheme: colorScheme,
+                  onPressed: () {
+                    showDialog<void>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: Text(l10n.timedModeTitle),
+                        content: SingleChildScrollView(
+                          child: Text(
+                            l10n.timedModeInfoBody,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  height: 1.4,
+                                ),
                           ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(),
-                              child: Text(l10n.ok),
-                            ),
-                          ],
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.info_outline),
-                    tooltip: l10n.timedModeTitle,
-                  ),
-                ],
-              ),
-            ],
-          ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            child: Text(l10n.ok),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
         ),
       ],
     );
@@ -942,87 +974,190 @@ class _StreakReminderSectionState extends State<_StreakReminderSection> {
   }
 }
 
-class _ContinueRow extends StatelessWidget {
-  const _ContinueRow({
+class _HomeContinueButton extends StatelessWidget {
+  const _HomeContinueButton({
     required this.hasSavedGame,
     required this.onContinue,
+    required this.borderRadius,
+    required this.minHeight,
   });
 
   final bool hasSavedGame;
   final VoidCallback onContinue;
+  final double borderRadius;
+  final double minHeight;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final levelLabels = [l10n.levelEasy, l10n.levelMedium, l10n.levelHard, l10n.levelExpert];
     final saved = hasSavedGame ? GameStorage.loadGame() : null;
     final difficultyIndex = (saved?[GameStorage.keyDifficulty] as num?)?.toInt() ?? 0;
     final levelLabel = levelLabels[difficultyIndex.clamp(0, levelLabels.length - 1)];
     final elapsedSeconds = (saved?[GameStorage.keyElapsedSeconds] as num?)?.toInt() ?? 0;
-    final savedAtRaw = saved?[GameStorage.keySavedAt] as String?;
-    DateTime? savedAt;
-    if (savedAtRaw != null && savedAtRaw.isNotEmpty) {
-      savedAt = DateTime.tryParse(savedAtRaw);
-    }
+    final sublineColor = colorScheme.onPrimary.withValues(alpha: 0.82);
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(borderRadius),
+    );
 
-    return Row(
-      children: [
-        FilledButton.icon(
-          onPressed: hasSavedGame ? onContinue : null,
-          icon: const Icon(Icons.play_arrow),
-          label: Text(l10n.continueGame),
-        ),
-        if (hasSavedGame) ...[
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+    final button = FilledButton(
+      onPressed: hasSavedGame ? onContinue : null,
+      style: FilledButton.styleFrom(
+        minimumSize: Size(double.infinity, minHeight + (hasSavedGame ? 18 : 0)),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        shape: shape,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.continueGame,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleMedium?.copyWith(
+                  color: colorScheme.onPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          if (hasSavedGame) ...[
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  levelLabel,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  formatDuration(elapsedSeconds),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
-                if (savedAt != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    _formatSavedAt(l10n, savedAt),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                Icon(Icons.schedule, size: 16, color: sublineColor),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${formatDuration(elapsedSeconds)} - $levelLabel',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                          color: sublineColor,
+                          fontWeight: FontWeight.w500,
                         ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
+                ),
               ],
             ),
-          ),
+          ],
         ],
-      ],
+      ),
+    );
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius),
+        boxShadow: hasSavedGame
+            ? [
+                BoxShadow(
+                  color: colorScheme.primary.withValues(alpha: 0.32),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
+                ),
+              ]
+            : null,
+      ),
+      child: button,
     );
   }
+}
 
-  static String _formatSavedAt(AppLocalizations l10n, DateTime savedAt) {
-    final timeStr = '${savedAt.hour.toString().padLeft(2, '0')}:${savedAt.minute.toString().padLeft(2, '0')}';
-    final dateStr = '${savedAt.day.toString().padLeft(2, '0')}.${savedAt.month.toString().padLeft(2, '0')}.${savedAt.year}';
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final savedDay = DateTime(savedAt.year, savedAt.month, savedAt.day);
-    if (savedDay == today) {
-      return l10n.savedTodayAt(timeStr);
-    }
-    final yesterday = today.subtract(const Duration(days: 1));
-    if (savedDay == yesterday) {
-      return l10n.savedYesterdayAt(timeStr);
-    }
-    return l10n.savedOn(dateStr);
+class _HomeSecondaryActionButton extends StatelessWidget {
+  const _HomeSecondaryActionButton({
+    required this.label,
+    required this.borderRadius,
+    required this.minHeight,
+    required this.onPressed,
+    this.icon,
+  });
+
+  final String label;
+  final IconData? icon;
+  final double borderRadius;
+  final double minHeight;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return FilledButton(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: colorScheme.surfaceContainerHighest,
+        foregroundColor: colorScheme.primary,
+        disabledBackgroundColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        minimumSize: Size(double.infinity, minHeight),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(borderRadius),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 22),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            label,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeSquareInfoButton extends StatelessWidget {
+  const _HomeSquareInfoButton({
+    required this.onPressed,
+    required this.borderRadius,
+    required this.size,
+    required this.colorScheme,
+    required this.tooltip,
+  });
+
+  final VoidCallback onPressed;
+  final double borderRadius;
+  final double size;
+  final ColorScheme colorScheme;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(borderRadius),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Center(
+              child: Icon(
+                Icons.info_outline,
+                color: colorScheme.primary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -1051,17 +1186,3 @@ class _SectionBlock extends StatelessWidget {
   }
 }
 
-class _DifficultyChip extends StatelessWidget {
-  const _DifficultyChip({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return FilterChip(
-      label: Text(label),
-      onSelected: (_) => onTap(),
-    );
-  }
-}

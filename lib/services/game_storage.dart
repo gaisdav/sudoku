@@ -2,6 +2,14 @@ import 'dart:convert';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
+/// Per-day result for the activity calendar. If a day has at least one win, it is stored as [win] even if the user lost later.
+enum CalendarDayOutcome {
+  /// At least one move, no finished win/loss recorded for that day yet, or only abandoned games after a loss.
+  played,
+  loss,
+  win,
+}
+
 /// Persists current game and statistics using Hive.
 class GameStorage {
   GameStorage._();
@@ -17,6 +25,7 @@ class GameStorage {
     await Hive.initFlutter();
     _box = await Hive.openBox(_boxName);
     await _purgeRemovedDailyChallengeKeys();
+    await _ensureActivityCalendarMigratedAsync();
   }
 
   /// One-time cleanup after removing the daily challenge feature (legacy Hive keys).
@@ -223,9 +232,10 @@ class GameStorage {
     await clearActivityDates();
   }
 
-  // --- Activity dates (for streak & calendar) ---
+  // --- Activity calendar (streak + per-day outcome) ---
 
-  static const _keyActivityDates = 'activity_dates';
+  static const _keyActivityDates = 'activity_dates'; // legacy; migrated into [_keyActivityCalendar]
+  static const _keyActivityCalendar = 'activity_calendar';
   static const _maxActivityDates = 365;
 
   /// Normalizes [date] to local calendar date (yyyy-MM-dd).
@@ -233,38 +243,133 @@ class GameStorage {
     return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
-  /// Records that the user was active on [date] (e.g. at least one move). Uses local date. Keeps only last [_maxActivityDates] days.
-  /// Returns true if this calendar day was newly added.
-  static Future<bool> saveActivityDate(DateTime date) async {
+  static CalendarDayOutcome? _parseOutcome(String raw) {
+    switch (raw) {
+      case 'win':
+        return CalendarDayOutcome.win;
+      case 'loss':
+        return CalendarDayOutcome.loss;
+      case 'played':
+        return CalendarDayOutcome.played;
+      default:
+        return null;
+    }
+  }
+
+  /// Merges [incoming] with the previous stored outcome for the same calendar day.
+  static String? _mergeStoredOutcome(String? previous, CalendarDayOutcome incoming) {
+    switch (incoming) {
+      case CalendarDayOutcome.win:
+        return 'win';
+      case CalendarDayOutcome.loss:
+        if (previous == 'win') return 'win';
+        return 'loss';
+      case CalendarDayOutcome.played:
+        if (previous == null) return 'played';
+        return previous;
+    }
+  }
+
+  static Map<String, String> _loadCalendarRawMap() {
+    final raw = box.get(_keyActivityCalendar);
+    if (raw == null) return {};
+    try {
+      final m = Map<String, dynamic>.from(jsonDecode(raw.toString()) as Map);
+      final out = <String, String>{};
+      for (final e in m.entries) {
+        final k = e.key.toString();
+        if (k.length != 10) continue;
+        final v = e.value.toString();
+        if (_parseOutcome(v) == null) continue;
+        out[k] = v;
+      }
+      return out;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static void _trimCalendarMap(Map<String, String> map) {
+    if (map.length <= _maxActivityDates) return;
+    final keys = map.keys.toList()..sort();
+    final drop = keys.length - _maxActivityDates;
+    for (int i = 0; i < drop; i++) {
+      map.remove(keys[i]);
+    }
+  }
+
+  static Future<void> _ensureActivityCalendarMigratedAsync() async {
+    if (box.get(_keyActivityCalendar) != null) return;
+    final fromLegacy = <String, String>{};
+    final raw = box.get(_keyActivityDates);
+    if (raw != null) {
+      try {
+        final list = jsonDecode(raw.toString()) as List;
+        for (final e in list) {
+          final s = e.toString();
+          if (s.length == 10) fromLegacy[s] = 'played';
+        }
+      } catch (_) {}
+    }
+    await box.put(_keyActivityCalendar, jsonEncode(fromLegacy));
+    await box.delete(_keyActivityDates);
+  }
+
+  /// Outcome per local calendar day. Legacy [activity_dates] list is treated as [played] until migrated.
+  static Map<String, CalendarDayOutcome> loadCalendarDayOutcomes() {
+    final rawMap = _loadCalendarRawMap();
+    if (rawMap.isNotEmpty) {
+      final out = <String, CalendarDayOutcome>{};
+      for (final e in rawMap.entries) {
+        final o = _parseOutcome(e.value);
+        if (o != null) out[e.key] = o;
+      }
+      return out;
+    }
+    final legacy = box.get(_keyActivityDates);
+    if (legacy == null) return {};
+    try {
+      final list = jsonDecode(legacy.toString()) as List;
+      final out = <String, CalendarDayOutcome>{};
+      for (final e in list) {
+        final s = e.toString();
+        if (s.length == 10) out[s] = CalendarDayOutcome.played;
+      }
+      return out;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Updates stored outcome for [date] using merge rules (win beats everything; loss beats played; played only fills empty days).
+  /// Returns true if persisted data changed.
+  static Future<bool> recordCalendarDay(DateTime date, CalendarDayOutcome outcome) async {
+    await _ensureActivityCalendarMigratedAsync();
     final key = _dateToKey(date);
-    final list = List<String>.from(loadActivityDates());
-    if (list.contains(key)) return false;
-    list.add(key);
-    list.sort();
-    final trimmed = list.length > _maxActivityDates ? list.sublist(list.length - _maxActivityDates) : list;
-    await box.put(_keyActivityDates, jsonEncode(trimmed));
+    final map = _loadCalendarRawMap();
+    final merged = _mergeStoredOutcome(map[key], outcome);
+    if (merged == null) return false;
+    if (map[key] == merged) return false;
+    map[key] = merged;
+    _trimCalendarMap(map);
+    await box.put(_keyActivityCalendar, jsonEncode(map));
     return true;
   }
 
   /// Whether today's local calendar date is already in the activity list (played / had a move today).
   static bool hasActivityToday() {
-    return loadActivityDates().contains(_dateToKey(DateTime.now()));
+    return loadCalendarDayOutcomes().containsKey(_dateToKey(DateTime.now()));
   }
 
-  /// Returns list of activity date strings (yyyy-MM-dd), sorted. Empty if none.
+  /// Sorted date keys (yyyy-MM-dd) with any recorded activity — for streaks.
   static List<String> loadActivityDates() {
-    final raw = box.get(_keyActivityDates);
-    if (raw == null) return [];
-    try {
-      final list = jsonDecode(raw.toString()) as List;
-      return list.map((e) => e.toString()).where((s) => s.length == 10).toList()..sort();
-    } catch (_) {
-      return [];
-    }
+    final keys = loadCalendarDayOutcomes().keys.toList()..sort();
+    return keys;
   }
 
   /// Clears all activity dates (e.g. when user resets statistics).
   static Future<void> clearActivityDates() async {
+    await box.delete(_keyActivityCalendar);
     await box.delete(_keyActivityDates);
   }
 

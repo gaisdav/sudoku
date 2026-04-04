@@ -24,13 +24,12 @@ class _ActivityCalendarPanelState extends ConsumerState<ActivityCalendarPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final activityDates = ref.watch(activityDatesProvider);
-    final activitySet = activityDates.toSet();
+    final dayOutcomes = ref.watch(calendarDayOutcomesProvider);
     final locale = Localizations.localeOf(context).toString();
 
     return ActivityCalendarWidget(
       displayMonth: _displayMonth,
-      activityDates: activitySet,
+      dayOutcomes: dayOutcomes,
       locale: locale,
       onPreviousMonth: () {
         setState(() {
